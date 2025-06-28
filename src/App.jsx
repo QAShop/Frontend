@@ -13,23 +13,25 @@ import { Search, Filter, User, Plus, Trash2, ChevronUp, ChevronDown, ChevronLeft
 import './App.css'
 import { useToast } from '@/components/ui/use-toast'
 import { ToastProvider, ToastViewport } from '@/components/ui/toast'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import ProductPage from './ProductPage';
 
 const API_BASE_URL = 'http://localhost:5000/api'
 
-// Категории товаров
-const CATEGORIES = [
-  'Электроника',
-  'Одежда и аксессуары',
-  'Дом и сад',
-  'Красота и здоровье',
-  'Детские товары',
-  'Спорт и отдых',
-  'Продукты питания',
-  'Книги и канцелярия',
-  'Автотовары'
-]
+// // Категории товаров
+// const CATEGORIES = [
+//   'Электроника',
+//   'Одежда и аксессуары',
+//   'Дом и сад',
+//   'Красота и здоровье',
+//   'Детские товары',
+//   'Спорт и отдых',
+//   'Продукты питания',
+//   'Книги и канцелярия',
+//   'Автотовары'
+// ]
 
-function App() {
+function AppContent() {
   const [products, setProducts] = useState([])
   const [filteredProducts, setFilteredProducts] = useState([])
   const [currentUser, setCurrentUser] = useState(null)
@@ -42,8 +44,11 @@ function App() {
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
   const [isCreateProductModalOpen, setIsCreateProductModalOpen] = useState(false)
   const [filterCount, setFilterCount] = useState(0)
+  const [totalProductsCount, setTotalProductsCount] = useState(0); // Убедитесь, что это объявлено
+  const [totalPages, setTotalPages] = useState(0);
   const [token, setToken] = useState(localStorage.getItem('jwt_token'))
   const { toast } = useToast()
+  const [categories, setCategories] = useState([]) 
 
   // Фильтры
   const [filters, setFilters] = useState({
@@ -70,64 +75,122 @@ function App() {
     description: '',
     in_stock: 'Да'
   })
+// Функция для загрузки категорий с сервера  
+const fetchCategories = async () => {  
+  try {  
+    const response = await fetch(`${API_BASE_URL}/products/categories`, {  
+      headers: {  
+        'Content-Type': 'application/json'  
+      }  
+    })  
+    
+    if (!response.ok) {  
+      throw new Error(`HTTP error! status: ${response.status}`)  
+    }  
+    
+    const data = await response.json()  
+    console.log('Loaded categories:', data)  
+    
+    // Сохраняем категории в состоянии  
+    // Предполагается, что сервер возвращает массив объектов с id и name  
+    setCategories(data.categories || [])  
+  } catch (error) {  
+    console.error('Ошибка при загрузке категорий:', error)  
+    setCategories([])  
+  }  
+}  
 
-  // Загрузка продуктов
-  const fetchProducts = async () => {
-    try {
-      let url = `${API_BASE_URL}/products`
-      const params = new URLSearchParams()
+// Вызываем функцию загрузки категорий при монтировании компонента  
+useEffect(() => {  
+  fetchCategories()  
+}, [])  
 
-      if (searchQuery) {
-        params.append('query', searchQuery)
-      }
-      if (filters.category) {
-        params.append('category', filters.category)
-      }
-      if (filters.priceMin) {
-        params.append('price_min', filters.priceMin)
-      }
-      if (filters.priceMax) {
-        params.append('price_max', filters.priceMax)
-      }
-      if (filters.dateFrom) {
-        params.append('date_from', filters.dateFrom)
-      }
-      if (filters.dateTo) {
-        params.append('date_to', filters.dateTo)
-      }
-      if (filters.inStock) {
-        params.append('in_stock', filters.inStock)
-      }
-      params.append('page', currentPage)
-      params.append('limit', itemsPerPage)
-      if (sortField) {
-        params.append('sort_by', sortField)
-        params.append('sort_order', sortDirection)
-      }
+// Обновите обработчик изменения категории  
+const handleCategoryChange = (category) => {  
+  setFilters({  
+    ...filters,  
+    category: category // Теперь это id категории, а не название  
+  })  
+}  
 
-      if (params.toString()) {
-        url = `${url}?${params.toString()}`
-      }
+// Загрузка продуктов  
+const fetchProducts = async () => {  
+  try {  
+    // Базовый URL для запроса  
+    let url = `${API_BASE_URL}/products/get-products`  
+    
+    // Query-параметры для пагинации  
+    const params = new URLSearchParams()  
+    params.append('page', currentPage)  
+    params.append('limit', itemsPerPage)  
+    url = `${url}?${params.toString()}`  
 
-      console.log('Fetching products from:', url)
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      const data = await response.json()
-      console.log('Received data for products:', data)
+    // Формируем тело запроса с параметрами фильтрации  
+    const requestBody = {}  
+    
+    if (searchQuery) {  
+      requestBody.search_query = searchQuery  
+    }  
+    
+    // Передаем ID категории напрямую  
+    if (filters.category) {  
+      requestBody.category_id = filters.category  
+    }  
+    
+    if (filters.priceMin) {  
+      requestBody.min_price = filters.priceMin  
+    }  
+    if (filters.priceMax) {  
+      requestBody.max_price = filters.priceMax  
+    }  
+    if (filters.dateFrom) {  
+      requestBody.created_from = filters.dateFrom  
+    }  
+    if (filters.dateTo) {  
+      requestBody.created_to = filters.dateTo  
+    }  
+    if (filters.inStock !== undefined) {  
+      requestBody.in_stock = filters.inStock  
+    }  
+    if (sortField) {  
+      requestBody.sort_by = sortField  
+      requestBody.sort_order = sortDirection  
+    }  
 
-      // Ensure data.products is an array and extract it
-      const fetchedProducts = Array.isArray(data.products) ? data.products : [];
-      console.log('Processed products:', fetchedProducts)
-      setProducts(fetchedProducts)
-      setFilteredProducts(fetchedProducts)
-    } catch (error) {
-      console.error('Ошибка при загрузке продуктов:', error)
-      setProducts([])
-      setFilteredProducts([])
-    }
-  }
+    console.log('Fetching products from:', url)  
+    console.log('Request body:', requestBody)  
+    
+    // Выполняем POST-запрос с телом запроса  
+    const response = await fetch(url, {  
+      method: 'POST',  
+      headers: {  
+        'Content-Type': 'application/json'  
+      },  
+      body: JSON.stringify(requestBody)  
+    })  
+    
+    if (!response.ok) {  
+      throw new Error(`HTTP error! status: ${response.status}`)  
+    }  
+    
+    const data = await response.json()  
+    console.log('Received data for products:', data)  
+
+    // Ensure data.products is an array and extract it  
+    const fetchedProducts = Array.isArray(data.products) ? data.products : [];  
+    console.log('Processed products:', fetchedProducts)  
+    setProducts(fetchedProducts)  
+    setFilteredProducts(fetchedProducts)  
+    setTotalProductsCount(data.total || 0); // Обновляем общее количество товаров  
+    setTotalPages(data.pages || 0);   
+  } catch (error) {  
+    console.error('Ошибка при загрузке продуктов:', error)  
+    setProducts([])  
+    setFilteredProducts([])  
+    setTotalProductsCount(0); // Сбрасываем при ошибке  
+    setTotalPages(0);   
+  }  
+}
 
   // Загрузка информации о пользователе
   const fetchUser = async (jwtToken) => {
@@ -154,7 +217,7 @@ function App() {
 
   useEffect(() => {
     fetchProducts()
-  }, [searchQuery, currentPage, itemsPerPage, sortField, sortDirection]) // Re-fetch on these changes
+  }, [searchQuery, currentPage, itemsPerPage, sortField, sortDirection, filters]) // Re-fetch on these changes
 
   useEffect(() => {
     if (token) {
@@ -201,9 +264,10 @@ function App() {
   }
 
   // Пагинация (теперь управляется бэкендом, но UI остается)
-  const totalPages = Math.ceil(products.length / itemsPerPage) // This will need to come from backend total count
+  // const totalPages = Math.ceil(totalProductsCount / itemsPerPage) // This will need to come from backend total count
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
+  const currentEndIndex = Math.min(startIndex + products.length, totalProductsCount);
   const currentProducts = Array.isArray(products) ? products.slice(startIndex, endIndex) : []; // Ensure currentProducts is always an array
 
   // Авторизация
@@ -330,547 +394,590 @@ function App() {
     }
   }
 
-  return (
-    <ToastProvider>
-      <div className="min-h-screen bg-gray-50">
-        {/* Хедер */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-8">
-                <h1 className="text-2xl font-bold text-blue-600">QA Shop</h1>
-                <nav className="hidden md:flex space-x-6">
-                  <a href="#" className="text-blue-600 font-medium">Продукты</a>
-                  <a href="#" className="text-gray-500 hover:text-gray-700">Категории</a>
-                  <a href="#" className="text-gray-500 hover:text-gray-700">Акции</a>
-                  <a href="#" className="text-gray-500 hover:text-gray-700">О нас</a>
-                </nav>
+
+return (
+  <div className="min-h-screen bg-gray-50">
+    {/* Хедер */}
+    <header className="bg-white shadow-sm border-b">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center space-x-8">
+            <h1 className="text-2xl font-bold text-blue-600">QA Shop</h1>
+            <nav className="hidden md:flex space-x-6">
+              <Link to="/" className="text-blue-600 font-medium">Продукты</Link>
+              <a href="#" className="text-gray-500 hover:text-gray-700">Категории</a>
+              <a href="#" className="text-gray-500 hover:text-gray-700">Акции</a>
+              <a href="#" className="text-gray-500 hover:text-gray-700">О нас</a>
+            </nav>
+          </div>
+          <div>
+            {currentUser ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-600">Привет, {currentUser.email}</span>
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                  <User className="h-4 w-4 mr-2" />
+                  Личный кабинет
+                </Button>
               </div>
-              <div>
-                {currentUser ? (
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm text-gray-600">Привет, {currentUser.email}</span>
-                    <Button variant="ghost" size="sm" onClick={handleLogout}>
-                      <User className="h-4 w-4 mr-2" />
-                      Личный кабинет
-                    </Button>
-                  </div>
-                ) : (
-                  <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
-                    <DialogTrigger asChild>
-                      <Button>Войти / Зарегистрироваться</Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Авторизация</DialogTitle>
-                      </DialogHeader>
-                      <Tabs defaultValue="login" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                          <TabsTrigger value="login">Вход</TabsTrigger>
-                          <TabsTrigger value="register">Регистрация</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="login" className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                              id="email"
-                              type="email"
-                              value={authForm.email}
-                              onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-                              placeholder="admin@example.com"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="password">Пароль</Label>
-                            <Input
-                              id="password"
-                              type="password"
-                              value={authForm.password}
-                              onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-                            />
-                          </div>
-                          <Button onClick={handleLogin} className="w-full">Войти</Button>
-                        </TabsContent>
-                        <TabsContent value="register" className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="username">Имя пользователя</Label>
-                            <Input
-                              id="username"
-                              value={authForm.username}
-                              onChange={(e) => setAuthForm({...authForm, username: e.target.value})}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="reg-email">Email</Label>
-                            <Input
-                              id="reg-email"
-                              type="email"
-                              value={authForm.email}
-                              onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="reg-password">Пароль</Label>
-                            <Input
-                              id="reg-password"
-                              type="password"
-                              value={authForm.password}
-                              onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-                            />
-                          </div>
-                          <Button onClick={handleRegister} className="w-full">Зарегистрироваться</Button>
-                        </TabsContent>
-                      </Tabs>
-                    </DialogContent>
-                  </Dialog>
-                )}
-              </div>
+            ) : (
+              <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
+                <DialogTrigger asChild>
+                  <Button>Войти / Зарегистрироваться</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Авторизация</DialogTitle>
+                  </DialogHeader>
+                  <Tabs defaultValue="login" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="login">Вход</TabsTrigger>
+                      <TabsTrigger value="register">Регистрация</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="login" className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={authForm.email}
+                          onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
+                          placeholder="admin@example.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Пароль</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={authForm.password}
+                          onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
+                        />
+                      </div>
+                      <Button onClick={handleLogin} className="w-full">Войти</Button>
+                    </TabsContent>
+                    <TabsContent value="register" className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="username">Имя пользователя</Label>
+                        <Input
+                          id="username"
+                          value={authForm.username}
+                          onChange={(e) => setAuthForm({...authForm, username: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="reg-email">Email</Label>
+                        <Input
+                          id="reg-email"
+                          type="email"
+                          value={authForm.email}
+                          onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="reg-password">Пароль</Label>
+                        <Input
+                          id="reg-password"
+                          type="password"
+                          value={authForm.password}
+                          onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
+                        />
+                      </div>
+                      <Button onClick={handleRegister} className="w-full">Зарегистрироваться</Button>
+                    </TabsContent>
+                  </Tabs>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+
+    {/* Основной контент */}
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          Продукты ({totalProductsCount}) {/* Display total products from API */}
+        </h2>
+        
+        {/* Панель поиска и фильтров */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="flex-1 max-w-md">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Введите id или наименование продукта"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
             </div>
           </div>
-        </header>
-
-        {/* Основной контент */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Продукты ({products.length}) {/* Display total products from API */}
-            </h2>
-            
-            {/* Панель поиска и фильтров */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-              <div className="flex-1 max-w-md">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Введите id или наименование продукта"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                {currentUser?.role === 'admin' && (
-                  <Dialog open={isCreateProductModalOpen} onOpenChange={setIsCreateProductModalOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="bg-green-600 hover:bg-green-700">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Создать товар
+          
+          <div className="flex items-center space-x-4">
+            {currentUser?.role === 'admin' && (
+              <Dialog open={isCreateProductModalOpen} onOpenChange={setIsCreateProductModalOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-green-600 hover:bg-green-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Создать товар
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Создание товара</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="product-name">Название товара *</Label>
+                      <Input
+                        id="product-name"
+                        value={productForm.name}
+                        onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                        placeholder="Введите название товара"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="product-price">Цена *</Label>
+                      <Input
+                        id="product-price"
+                        type="number"
+                        step="0.01"
+                        value={productForm.price}
+                        onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Категория *</Label>
+                      <Select value={productForm.category} onValueChange={(value) => setProductForm({...productForm, category: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите категорию" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map(category => (
+                            <SelectItem key={category.name} value={category}>{category}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="product-description">Описание</Label>
+                      <Input
+                        id="product-description"
+                        value={productForm.description}
+                        onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                        placeholder="Описание товара"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>В наличии</Label>
+                      <RadioGroup value={productForm.in_stock} onValueChange={(value) => setProductForm({...productForm, in_stock: value})}>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="Да" id="stock-yes" />
+                          <Label htmlFor="stock-yes">Да</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="Под заказ" id="stock-order" />
+                          <Label htmlFor="stock-order">Под заказ</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    
+                    <div className="flex space-x-2 pt-4">
+                      <Button onClick={handleCreateProduct} className="flex-1">
+                        Создать
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Создание товара</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="product-name">Название товара *</Label>
-                          <Input
-                            id="product-name"
-                            value={productForm.name}
-                            onChange={(e) => setProductForm({...productForm, name: e.target.value})}
-                            placeholder="Введите название товара"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="product-price">Цена *</Label>
-                          <Input
-                            id="product-price"
-                            type="number"
-                            step="0.01"
-                            value={productForm.price}
-                            onChange={(e) => setProductForm({...productForm, price: e.target.value})}
-                            placeholder="0.00"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label>Категория *</Label>
-                          <Select value={productForm.category} onValueChange={(value) => setProductForm({...productForm, category: value})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Выберите категорию" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {CATEGORIES.map(category => (
-                                <SelectItem key={category} value={category}>{category}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="product-description">Описание</Label>
-                          <Input
-                            id="product-description"
-                            value={productForm.description}
-                            onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                            placeholder="Описание товара"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label>В наличии</Label>
-                          <RadioGroup value={productForm.in_stock} onValueChange={(value) => setProductForm({...productForm, in_stock: value})}>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="Да" id="stock-yes" />
-                              <Label htmlFor="stock-yes">Да</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="Под заказ" id="stock-order" />
-                              <Label htmlFor="stock-order">Под заказ</Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
-                        
-                        <div className="flex space-x-2 pt-4">
-                          <Button onClick={handleCreateProduct} className="flex-1">
-                            Создать
-                          </Button>
-                          <Button onClick={() => setIsCreateProductModalOpen(false)} variant="outline" className="flex-1">
-                            Отмена
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                )}
-                
-                <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline">
-                      <Filter className="h-4 w-4 mr-2" />
-                      Фильтры{filterCount > 0 && `(${filterCount})`}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Фильтры</DialogTitle>
-                    </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>Категория</Label>
-                          <Select value={filters.category} onValueChange={(value) => setFilters({...filters, category: value})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Выберите категорию" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {CATEGORIES.map(category => (
-                                <SelectItem key={category} value={category}>{category}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label>Цена</Label>
-                          <div className="flex space-x-2">
-                            <Input
-                              placeholder="От"
-                              type="number"
-                              value={filters.priceMin}
-                              onChange={(e) => setFilters({...filters, priceMin: e.target.value})}
-                            />
-                            <Input
-                              placeholder="До"
-                              type="number"
-                              value={filters.priceMax}
-                              onChange={(e) => setFilters({...filters, priceMax: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label>Дата создания</Label>
-                          <div className="flex space-x-2">
-                            <Input
-                              type="date"
-                              value={filters.dateFrom}
-                              onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
-                            />
-                            <Input
-                              type="date"
-                              value={filters.dateTo}
-                              onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label>В наличии</Label>
-                          <RadioGroup value={filters.inStock} onValueChange={(value) => setFilters({...filters, inStock: value})}>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="Да" id="yes" />
-                              <Label htmlFor="yes">Да</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="Под заказ" id="order" />
-                              <Label htmlFor="order">Под заказ</Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
-                        
-                        <div className="flex space-x-2 pt-4">
-                          <Button onClick={applyFilters} className="flex-1">
-                            Применить
-                          </Button>
-                          <Button onClick={resetFilters} variant="outline" className="flex-1">
-                            Сбросить
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                
-                
-                <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline">
-                      <Filter className="h-4 w-4 mr-2" />
-                      Фильтры{filterCount > 0 && `(${filterCount})`}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Фильтры</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Категория</Label>
-                        <Select value={filters.category} onValueChange={(value) => setFilters({...filters, category: value})}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Выберите категорию" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CATEGORIES.map(category => (
-                              <SelectItem key={category} value={category}>{category}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Цена</Label>
-                        <div className="flex space-x-2">
-                          <Input
-                            placeholder="От"
-                            type="number"
-                            value={filters.priceMin}
-                            onChange={(e) => setFilters({...filters, priceMin: e.target.value})}
-                          />
-                          <Input
-                            placeholder="До"
-                            type="number"
-                            value={filters.priceMax}
-                            onChange={(e) => setFilters({...filters, priceMax: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Дата создания</Label>
-                        <div className="flex space-x-2">
-                          <Input
-                            type="date"
-                            value={filters.dateFrom}
-                            onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
-                          />
-                          <Input
-                            type="date"
-                            value={filters.dateTo}
-                            onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>В наличии</Label>
-                        <RadioGroup value={filters.inStock} onValueChange={(value) => setFilters({...filters, inStock: value})}>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Да" id="yes" />
-                            <Label htmlFor="yes">Да</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Под заказ" id="order" />
-                            <Label htmlFor="order">Под заказ</Label>
-                          </div>
-                        </RadioGroup>
-                      </div>
-                      
-                      <div className="flex space-x-2 pt-4">
-                        <Button onClick={applyFilters} className="flex-1">
-                          Применить
-                        </Button>
-                        <Button onClick={resetFilters} variant="outline" className="flex-1">
-                          Сбросить
-                        </Button>
+                      <Button onClick={() => setIsCreateProductModalOpen(false)} variant="outline" className="flex-1">
+                        Отмена
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+            
+            <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Фильтры{filterCount > 0 && `(${filterCount})`}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Фильтры</DialogTitle>
+                </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Категория</Label>
+                      <Select value={filters.category?.id?.toString() || "all"} onValueChange={(value) => {
+                        if (value === "all") {  
+                          setFilters({...filters, category: null});  
+                        } else {  
+                          const selectedCategory = categories.find(c => c.id.toString() === value);  
+                          setFilters({...filters, category: selectedCategory});  
+                        }  
+                      }
+                      }>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите категорию" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* Пустой вариант для сброса фильтра */}  
+                          <SelectItem value="all">Все категории</SelectItem>
+                          {/* Используем категории с сервера */}  
+                          {categories.map(category => (
+                            <SelectItem key={category.id} value={category.id.toString()}>  
+                            {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Цена</Label>
+                      <div className="flex space-x-2">
+                        <Input
+                          placeholder="От"
+                          type="number"
+                          value={filters.priceMin}
+                          onChange={(e) => setFilters({...filters, priceMin: e.target.value})}
+                        />
+                        <Input
+                          placeholder="До"
+                          type="number"
+                          value={filters.priceMax}
+                          onChange={(e) => setFilters({...filters, priceMax: e.target.value})}
+                        />
                       </div>
                     </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </div>
-          </div>
-
-          {/* Таблица товаров */}
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">
-                      <Button variant="ghost" size="sm" onClick={() => handleSort('id')} className="font-semibold">
-                        ID
-                        {sortField === 'id' && (
-                          sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-                        )}
+                    
+                    <div className="space-y-2">
+                      <Label>Дата создания</Label>
+                      <div className="flex space-x-2">
+                        <Input
+                          type="date"
+                          value={filters.dateFrom}
+                          onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+                        />
+                        <Input
+                          type="date"
+                          value={filters.dateTo}
+                          onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>В наличии</Label>
+                      <RadioGroup value={filters.inStock} onValueChange={(value) => setFilters({...filters, inStock: value})}>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="Да" id="yes" />
+                          <Label htmlFor="yes">Да</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="Под заказ" id="order" />
+                          <Label htmlFor="order">Под заказ</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    
+                    <div className="flex space-x-2 pt-4">
+                      <Button onClick={applyFilters} className="flex-1">
+                        Применить
                       </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button variant="ghost" size="sm" onClick={() => handleSort('name')} className="font-semibold">
-                        Наименование
-                        {sortField === 'name' && (
-                          sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-                        )}
+                      <Button onClick={resetFilters} variant="outline" className="flex-1">
+                        Сбросить
                       </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button variant="ghost" size="sm" onClick={() => handleSort('price')} className="font-semibold">
-                        Цена
-                        {sortField === 'price' && (
-                          sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-                        )}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button variant="ghost" size="sm" onClick={() => handleSort('category')} className="font-semibold">
-                        Категория
-                        {sortField === 'category' && (
-                          sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-                        )}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button variant="ghost" size="sm" onClick={() => handleSort('created_at')} className="font-semibold">
-                        Дата создания
-                        {sortField === 'created_at' && (
-                          sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-                        )}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button variant="ghost" size="sm" onClick={() => handleSort('in_stock')} className="font-semibold">
-                        В наличии
-                        {sortField === 'in_stock' && (
-                          sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-                        )}
-                      </Button>
-                    </TableHead>
-                    {currentUser?.role === 'admin' && (
-                      <TableHead className="w-16"></TableHead>
-                    )}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Array.isArray(products) && products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <a href={`/product/${product.id}`} className="text-blue-600 hover:underline font-medium">
-                          {product.id}
-                        </a>
-                      </TableCell>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.price.toFixed(2)}</TableCell>
-                      <TableCell>{product.category}</TableCell>
-                      <TableCell>{new Date(product.created_at).toLocaleDateString('ru-RU')}</TableCell>
-                      <TableCell>
-                        <Badge variant={product.in_stock === 'Да' ? 'default' : 'secondary'}>
-                          {product.in_stock}
-                        </Badge>
-                      </TableCell>
-                      {currentUser?.role === 'admin' && (
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteProduct(product.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Пагинация */}
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-gray-700">
-              {startIndex + 1} - {Math.min(endIndex, products.length)} из {products.length} {/* Use products.length for total count */}
-            </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             
-            <div className="flex items-center space-x-2">
-              <Button
-                variant={currentPage === 1 ? 'outline' : 'default'}
-                size="sm"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i
-                if (pageNum > totalPages) return null
-                return (
-                  <Button                    key={pageNum}
-                    variant={currentPage === pageNum ? 'default' : 'outline'}
-                    onClick={() => setCurrentPage(pageNum)}
-                    >{pageNum}
-                  </Button>
-                )
-              })}
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="items-per-page">Отображать на странице:</Label>
-              <Select
-                value={itemsPerPage.toString()}
-                onValueChange={(value) => {
-                  setItemsPerPage(Number(value))
-                  setCurrentPage(1) // Reset to first page when items per page changes
-                }}
-              >
-                <SelectTrigger className="w-[80px]">
-                  <SelectValue placeholder={itemsPerPage} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            
+            <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Фильтры{filterCount > 0 && `(${filterCount})`}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Фильтры</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Категория</Label>
+                    <Select value={filters.category ? filters.category.toString() : ""} onValueChange={(value) => {
+                      if (value === "all") {  
+                        setFilters({...filters, category: null});  
+                      } else {  
+                        // Сохраняем только ID категории, а не весь объект  
+                        setFilters({...filters, category: Number(value)});  
+                      }  
+                    }} 
+                      >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите категорию" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map(category => (
+                          <SelectItem key={category.id} value={category.id.toString()}>{category.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Цена</Label>
+                    <div className="flex space-x-2">
+                      <Input
+                        placeholder="От"
+                        type="number"
+                        value={filters.priceMin}
+                        onChange={(e) => setFilters({...filters, priceMin: e.target.value})}
+                      />
+                      <Input
+                        placeholder="До"
+                        type="number"
+                        value={filters.priceMax}
+                        onChange={(e) => setFilters({...filters, priceMax: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Дата создания</Label>
+                    <div className="flex space-x-2">
+                      <Input
+                        type="date"
+                        value={filters.dateFrom}
+                        onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+                      />
+                      <Input
+                        type="date"
+                        value={filters.dateTo}
+                        onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>В наличии</Label>
+                    <RadioGroup value={filters.inStock} onValueChange={(value) => setFilters({...filters, inStock: value})}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Да" id="yes" />
+                        <Label htmlFor="yes">Да</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="Под заказ" id="order" />
+                        <Label htmlFor="order">Под заказ</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  
+                  <div className="flex space-x-2 pt-4">
+                    <Button onClick={applyFilters} className="flex-1">
+                      Применить
+                    </Button>
+                    <Button onClick={resetFilters} variant="outline" className="flex-1">
+                      Сбросить
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
-        </main>
+        </div>
       </div>
+
+      {/* Таблица товаров */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-16">
+                  <Button variant="ghost" size="sm" onClick={() => handleSort('id')} className="font-semibold">
+                    ID
+                    {sortField === 'id' && (
+                      sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+                    )}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button variant="ghost" size="sm" onClick={() => handleSort('name')} className="font-semibold">
+                    Наименование
+                    {sortField === 'name' && (
+                      sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+                    )}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button variant="ghost" size="sm" onClick={() => handleSort('price')} className="font-semibold">
+                    Цена
+                    {sortField === 'price' && (
+                      sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+                    )}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button variant="ghost" size="sm" onClick={() => handleSort('category')} className="font-semibold">
+                    Категория
+                    {sortField === 'category' && (
+                      sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+                    )}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button variant="ghost" size="sm" onClick={() => handleSort('created_at')} className="font-semibold">
+                    Дата создания
+                    {sortField === 'created_at' && (
+                      sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+                    )}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button variant="ghost" size="sm" onClick={() => handleSort('in_stock')} className="font-semibold">
+                    В наличии
+                    {sortField === 'in_stock' && (
+                      sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+                    )}
+                  </Button>
+                </TableHead>
+                {currentUser?.role === 'admin' && (
+                  <TableHead className="w-16"></TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.isArray(products) && products.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell>
+                    <Link to={`/product/${product.id}`} className="text-blue-600 hover:underline font-medium">
+                      {product.id}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell>{product.price.toFixed(2)}</TableCell>
+                  <TableCell>{product.category.name}</TableCell>
+                  <TableCell>{new Date(product.created_at).toLocaleDateString('ru-RU')}</TableCell>
+                  <TableCell>
+                    <Badge variant={product.in_stock ? 'default' : 'secondary'}>
+                      {product.in_stock ? 'Да' : 'Под заказ'}
+                    </Badge>
+                  </TableCell>
+                  {currentUser?.role === 'admin' && (
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteProduct(product.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+        {/* Пагинация */}
+        <div className="mt-6 flex items-center justify-between">
+        <div className="text-sm text-gray-700">
+          {totalProductsCount > 0 ? (
+            <>
+              {startIndex + 1} - {currentEndIndex} из {totalProductsCount} {/* Должно отображать "1 - 20 из 47" */}
+            </>
+          ) : (
+            "Нет товаров"
+          )}
+        </div>
+
+          
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={currentPage === 1 ? 'outline' : 'default'}
+              size="sm"
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i
+              if (pageNum > totalPages) return null
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              )
+            })}
+            
+            <Button
+              variant={currentPage === totalPages ? 'outline' : 'default'}
+              size="sm"
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="items-per-page">Отображать на странице:</Label>
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => {
+                setItemsPerPage(Number(value))
+                setCurrentPage(1) // Reset to first page when items per page changes
+              }}
+            >
+              <SelectTrigger className="w-[80px]">
+                <SelectValue placeholder={itemsPerPage} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </main>
+    </div>
+  
+)
+}
+
+function App() {
+return (
+  <Router>
+    <ToastProvider>
+      <Routes>
+        <Route path="/" element={<AppContent />} />
+        <Route path="/product/:id" element={<ProductPage />} />
+      </Routes>
       <ToastViewport />
     </ToastProvider>
-  )
+  </Router>
+);
 }
 
 export default App
