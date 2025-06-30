@@ -11,30 +11,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.j
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table.jsx'
 import { Search, Filter, User, Plus, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import './App.css'
-import { useToast } from '@/components/ui/use-toast'
-import { ToastProvider, ToastViewport } from '@/components/ui/toast'
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ProductPage from './ProductPage';
+import Alert from './components/ui/Alert';
+import './components/ui/Alert.css'; 
 
 const API_BASE_URL = 'http://localhost:5000/api'
-
-// // Категории товаров
-// const CATEGORIES = [
-//   'Электроника',
-//   'Одежда и аксессуары',
-//   'Дом и сад',
-//   'Красота и здоровье',
-//   'Детские товары',
-//   'Спорт и отдых',
-//   'Продукты питания',
-//   'Книги и канцелярия',
-//   'Автотовары'
-// ]
 
 function AppContent() {
   const [products, setProducts] = useState([])
   const [filteredProducts, setFilteredProducts] = useState([])
   const [currentUser, setCurrentUser] = useState(null)
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [searchQuery, setSearchQuery] = useState('')
   const [sortField, setSortField] = useState('')
   const [sortDirection, setSortDirection] = useState('asc')
@@ -44,11 +32,13 @@ function AppContent() {
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
   const [isCreateProductModalOpen, setIsCreateProductModalOpen] = useState(false)
   const [filterCount, setFilterCount] = useState(0)
-  const [totalProductsCount, setTotalProductsCount] = useState(0); // Убедитесь, что это объявлено
+  const [totalProductsCount, setTotalProductsCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [token, setToken] = useState(localStorage.getItem('jwt_token'))
-  const { toast } = useToast()
   const [categories, setCategories] = useState([]) 
+  console.log('Token:', token);
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState('error'); 
 
   // Фильтры
   const [filters, setFilters] = useState({
@@ -59,6 +49,21 @@ function AppContent() {
     dateTo: '',
     inStock: ''
   })
+
+  // Функция для показа алерта
+  const showAlert = (message, type) => {
+    setAlertMessage(message);
+    setAlertType(type);
+    // Опционально: автоматически скрывать алерт через некоторое время, как тост
+    // setTimeout(() => {
+    //   setAlertMessage(null);
+    // }, 5000); // Например, через 5 секунд
+  };
+
+   // Функция для скрытия алерта
+   const hideAlert = () => {
+    setAlertMessage(null);
+  };
 
   // Форма авторизации
   const [authForm, setAuthForm] = useState({
@@ -98,20 +103,24 @@ const fetchCategories = async () => {
     console.error('Ошибка при загрузке категорий:', error)  
     setCategories([])  
   }  
-}  
+  }  
 
-// Вызываем функцию загрузки категорий при монтировании компонента  
-useEffect(() => {  
-  fetchCategories()  
-}, [])  
+  // Вызываем функцию загрузки категорий при монтировании компонента  
+  useEffect(() => {  
+    fetchCategories()  
+  }, [])  
 
-// Обновите обработчик изменения категории  
-const handleCategoryChange = (category) => {  
-  setFilters({  
+  // Обновите обработчик изменения категории  
+  const handleCategoryChange = (category) => {  
+    setFilters({  
     ...filters,  
     category: category // Теперь это id категории, а не название  
   })  
-}  
+    }  
+
+  useEffect(() => {
+    fetchProducts()
+  }, [searchQuery, currentPage, itemsPerPage, sortField, sortDirection])
 
 // Загрузка продуктов  
 const fetchProducts = async () => {  
@@ -149,7 +158,7 @@ const fetchProducts = async () => {
     if (filters.dateTo) {  
       requestBody.created_to = filters.dateTo  
     }  
-    if (filters.inStock !== undefined) {  
+    if (filters.inStock !== undefined && filters.inStock !== "") {  
       requestBody.in_stock = filters.inStock  
     }  
     if (sortField) {  
@@ -190,40 +199,43 @@ const fetchProducts = async () => {
     setTotalProductsCount(0); // Сбрасываем при ошибке  
     setTotalPages(0);   
   }  
-}
+  }
 
   // Загрузка информации о пользователе
   const fetchUser = async (jwtToken) => {
     try {
+      console.log('fetchUser: Attempting to fetch user data...');
+      // setIsLoadingUser(true); // Начинаем загрузку
       const response = await fetch(`${API_BASE_URL}/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${jwtToken}`
-        }
-      })
+        headers: { 'Authorization': `Bearer ${jwtToken}` }
+      });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = await response.json()
-      console.log('Received user data:', data)
-      // Correctly extract the user object from the nested structure
-      setCurrentUser(data.user)
+      const data = await response.json();
+      console.log('fetchUser: Received user data:', data);
+      setCurrentUser(data);
     } catch (error) {
-      console.error('Ошибка при получении информации о пользователе:', error)
-      setCurrentUser(null)
-      localStorage.removeItem('jwt_token')
-      setToken(null)
+      console.error('Ошибка при получении информации о пользователе:', error);
+      setCurrentUser(null);
+      localStorage.removeItem('jwt_token');
+      setToken(null);
+    } finally {
+      setIsLoadingUser(false); // Завершаем загрузку
+      console.log('fetchUser: Loading finished.');
     }
-  }
+  };
 
   useEffect(() => {
-    fetchProducts()
-  }, [searchQuery, currentPage, itemsPerPage, sortField, sortDirection, filters]) // Re-fetch on these changes
-
-  useEffect(() => {
+    console.log('useEffect [token] triggered. Current token:', token);
     if (token) {
-      fetchUser(token)
+      setIsLoadingUser(true);
+      fetchUser(token);
+    } else {
+      setCurrentUser(null); // Если токена нет, пользователь не авторизован
+      setIsLoadingUser(false); // Загрузка завершена, так как нет токена
     }
-  }, [token])
+  }, [token]);
 
   // Применение фильтров
   const applyFilters = () => {
@@ -263,8 +275,8 @@ const fetchProducts = async () => {
     fetchProducts() // Fetch all products again
   }
 
-  // Пагинация (теперь управляется бэкендом, но UI остается)
-  // const totalPages = Math.ceil(totalProductsCount / itemsPerPage) // This will need to come from backend total count
+//   // Пагинация (теперь управляется бэкендом, но UI остается)
+  //const totalPages = Math.ceil(totalProductsCount / itemsPerPage) // This will need to come from backend total count
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const currentEndIndex = Math.min(startIndex + products.length, totalProductsCount);
@@ -294,7 +306,8 @@ const fetchProducts = async () => {
       alert(`Ошибка входа: ${error.message}`)
     }
   }
-
+  
+  // Регистрация
   const handleRegister = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -303,32 +316,54 @@ const fetchProducts = async () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ username: authForm.username, email: authForm.email, password: authForm.password })
-      })
+      });
+      console.log('Registration response received:', response);
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+        console.log('Response not OK. Handling error alert.');
+        const errorData = await response.json();
+        showAlert(
+          errorData.message || `HTTP error! status: ${response.status}`,
+          'error' // Используем 'error' тип для Alert
+        );
+        console.log('Error alert called for non-OK response.');
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
-      const data = await response.json()
-      toast({
-        title: 'Регистрация успешна!',
-        description: 'Теперь вы можете войти.',
-        duration: 3000,
-        action: <Button onClick={() => toast.dismiss()}>ОК</Button>,
-      })
-      setIsAuthModalOpen(false)
-      setAuthForm({ email: '', password: '', username: '' })
+
+      console.log('Response OK. Handling success alert.');
+      const data = await response.json(); // Если API возвращает данные при успехе
+      showAlert(
+        'Регистрация успешна! Теперь вы можете войти.',
+        'success' // Используем 'success' тип для Alert
+      );
+      console.log('Success alert called.');
+
+      setTimeout(() => {
+        setIsAuthModalOpen(false); // Закрываем модальное окно
+        setAuthForm({ email: '', password: '', username: '' }); // Сбрасываем форму
+        hideAlert(); // Скрываем алерт после закрытия модального окна
+        console.log('Auth modal closed and form reset after delay.');
+      }, 100);
+
     } catch (error) {
-      console.error('Ошибка регистрации:', error)
-      alert(`Ошибка регистрации: ${error.message}`)
+      console.error('Ошибка регистрации в catch блоке:', error);
+      // Проверяем, чтобы не дублировать алерт, если ошибка уже была обработана
+      if (!alertMessage || !error.message.includes(alertMessage)) {
+        showAlert(
+          `Произошла непредвиденная ошибка: ${error.message}`,
+          'error'
+        );
+        console.log('Unknown error alert called.');
+      }
     }
-  }
+  };
 
   const handleLogout = () => {
     setCurrentUser(null)
     localStorage.removeItem('jwt_token')
     setToken(null)
   }
-
+  
   // Удаление товара (только для админа)
   const handleDeleteProduct = async (productId) => {
     if (window.confirm('Вы уверены, что хотите удалить этот товар?')) {
@@ -394,9 +429,19 @@ const fetchProducts = async () => {
     }
   }
 
-
 return (
   <div className="min-h-screen bg-gray-50">
+    {/* ==================================================================== */}
+    {/* ВСТАВЬТЕ КОД ДЛЯ ALERT ЗДЕСЬ */}
+    {/* Контейнер для глобального алерта */}
+    <div className="global-alert-container">
+      <Alert
+        message={alertMessage}
+        type={alertType}
+        onClose={hideAlert} // Позволяет пользователю закрыть алерт вручную
+      />
+    </div>
+    {/* ==================================================================== */}
     {/* Хедер */}
     <header className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -497,7 +542,7 @@ return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">
-          Продукты ({totalProductsCount}) {/* Display total products from API */}
+          Продукты ({totalProductsCount})
         </h2>
         
         {/* Панель поиска и фильтров */}
@@ -515,7 +560,8 @@ return (
           </div>
           
           <div className="flex items-center space-x-4">
-            {currentUser?.role === 'admin' && (
+            {/* {console.log('Rendering create product button. currentUser:', currentUser, 'isAdmin:', currentUser?.role === 'admin')}  */}
+            {!isLoadingUser && currentUser?.role === 'admin' && (
               <Dialog open={isCreateProductModalOpen} onOpenChange={setIsCreateProductModalOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-green-600 hover:bg-green-700">
@@ -599,108 +645,7 @@ return (
                   </div>
                 </DialogContent>
               </Dialog>
-            )}
-            
-            <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Фильтры{filterCount > 0 && `(${filterCount})`}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Фильтры</DialogTitle>
-                </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Категория</Label>
-                      <Select value={filters.category?.id?.toString() || "all"} onValueChange={(value) => {
-                        if (value === "all") {  
-                          setFilters({...filters, category: null});  
-                        } else {  
-                          const selectedCategory = categories.find(c => c.id.toString() === value);  
-                          setFilters({...filters, category: selectedCategory});  
-                        }  
-                      }
-                      }>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите категорию" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {/* Пустой вариант для сброса фильтра */}  
-                          <SelectItem value="all">Все категории</SelectItem>
-                          {/* Используем категории с сервера */}  
-                          {categories.map(category => (
-                            <SelectItem key={category.id} value={category.id.toString()}>  
-                            {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Цена</Label>
-                      <div className="flex space-x-2">
-                        <Input
-                          placeholder="От"
-                          type="number"
-                          value={filters.priceMin}
-                          onChange={(e) => setFilters({...filters, priceMin: e.target.value})}
-                        />
-                        <Input
-                          placeholder="До"
-                          type="number"
-                          value={filters.priceMax}
-                          onChange={(e) => setFilters({...filters, priceMax: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Дата создания</Label>
-                      <div className="flex space-x-2">
-                        <Input
-                          type="date"
-                          value={filters.dateFrom}
-                          onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
-                        />
-                        <Input
-                          type="date"
-                          value={filters.dateTo}
-                          onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>В наличии</Label>
-                      <RadioGroup value={filters.inStock} onValueChange={(value) => setFilters({...filters, inStock: value})}>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Да" id="yes" />
-                          <Label htmlFor="yes">Да</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Под заказ" id="order" />
-                          <Label htmlFor="order">Под заказ</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    
-                    <div className="flex space-x-2 pt-4">
-                      <Button onClick={applyFilters} className="flex-1">
-                        Применить
-                      </Button>
-                      <Button onClick={resetFilters} variant="outline" className="flex-1">
-                        Сбросить
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            
-            
+            )} 
             <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
@@ -771,13 +716,14 @@ return (
                   
                   <div className="space-y-2">
                     <Label>В наличии</Label>
-                    <RadioGroup value={filters.inStock} onValueChange={(value) => setFilters({...filters, inStock: value})}>
+                    <RadioGroup value={filters.inStock !== undefined ? String(filters.inStock) : undefined}
+                    onValueChange={(value) => setFilters({...filters, inStock: value === "true" ? true : false})}>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Да" id="yes" />
+                        <RadioGroupItem value="true" id="yes" />
                         <Label htmlFor="yes">Да</Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Под заказ" id="order" />
+                        <RadioGroupItem value="false" id="order" />
                         <Label htmlFor="order">Под заказ</Label>
                       </div>
                     </RadioGroup>
@@ -805,7 +751,9 @@ return (
             <TableHeader>
               <TableRow>
                 <TableHead className="w-16">
-                  <Button variant="ghost" size="sm" onClick={() => handleSort('id')} className="font-semibold">
+                  <Button variant="ghost" size="sm" 
+                  onClick={() => handleSort('id')} 
+                  className="font-semibold">
                     ID
                     {sortField === 'id' && (
                       sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
@@ -813,7 +761,9 @@ return (
                   </Button>
                 </TableHead>
                 <TableHead>
-                  <Button variant="ghost" size="sm" onClick={() => handleSort('name')} className="font-semibold">
+                  <Button variant="ghost" size="sm" 
+                  onClick={() => handleSort('name')} 
+                  className="font-semibold">
                     Наименование
                     {sortField === 'name' && (
                       sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
@@ -821,7 +771,9 @@ return (
                   </Button>
                 </TableHead>
                 <TableHead>
-                  <Button variant="ghost" size="sm" onClick={() => handleSort('price')} className="font-semibold">
+                  <Button variant="ghost" size="sm" 
+                  onClick={() => handleSort('price')} 
+                  className="font-semibold">
                     Цена
                     {sortField === 'price' && (
                       sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
@@ -829,7 +781,9 @@ return (
                   </Button>
                 </TableHead>
                 <TableHead>
-                  <Button variant="ghost" size="sm" onClick={() => handleSort('category')} className="font-semibold">
+                  <Button variant="ghost" size="sm" 
+                  onClick={() => handleSort('category')} 
+                  className="font-semibold">
                     Категория
                     {sortField === 'category' && (
                       sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
@@ -837,7 +791,9 @@ return (
                   </Button>
                 </TableHead>
                 <TableHead>
-                  <Button variant="ghost" size="sm" onClick={() => handleSort('created_at')} className="font-semibold">
+                  <Button variant="ghost" size="sm"
+                  onClick={() => handleSort('created_at')} 
+                  className="font-semibold">
                     Дата создания
                     {sortField === 'created_at' && (
                       sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
@@ -845,7 +801,9 @@ return (
                   </Button>
                 </TableHead>
                 <TableHead>
-                  <Button variant="ghost" size="sm" onClick={() => handleSort('in_stock')} className="font-semibold">
+                  <Button variant="ghost" size="sm" 
+                  onClick={() => handleSort('in_stock')} 
+                  className="font-semibold">
                     В наличии
                     {sortField === 'in_stock' && (
                       sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
@@ -897,7 +855,7 @@ return (
         <div className="text-sm text-gray-700">
           {totalProductsCount > 0 ? (
             <>
-              {startIndex + 1} - {currentEndIndex} из {totalProductsCount} {/* Должно отображать "1 - 20 из 47" */}
+              {Math.min((currentPage - 1) * itemsPerPage + 1, totalProductsCount)} - {Math.min(currentPage * itemsPerPage, totalProductsCount)} из {totalProductsCount}
             </>
           ) : (
             "Нет товаров"
@@ -924,7 +882,7 @@ return (
                   variant={currentPage === pageNum ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setCurrentPage(pageNum)}
-                >
+                 >
                   {pageNum}
                 </Button>
               )
@@ -961,25 +919,28 @@ return (
           </div>
         </div>
       </main>
+
+      {/* Футер */}
+      <footer className="bg-white shadow-sm border-t mt-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center text-gray-500 text-sm">
+          © 2024 QA Shop. Все права защищены.
+        </div>
+      </footer>
     </div>
-  
-)
+    )
 }
 
+
+
 function App() {
-return (
-  <Router>
-    <ToastProvider>
+  return (
+    <Router>
       <Routes>
         <Route path="/" element={<AppContent />} />
-        <Route path="/product/:id" element={<ProductPage />} />
+        <Route path="/product/:productId" element={<ProductPage />} />
       </Routes>
-      <ToastViewport />
-    </ToastProvider>
-  </Router>
-);
+    </Router>
+  )
 }
 
 export default App
-
-

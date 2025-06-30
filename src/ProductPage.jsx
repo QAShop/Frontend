@@ -3,12 +3,12 @@ import { useParams, Link } from 'react-router-dom'; // Добавил Link дл�
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button'; // Добавил Button
-import { ChevronLeft } from 'lucide-react'; // Добавил иконку для кнопки "Назад"
+import { ChevronLeft } from 'lucide-react'; // Добавил иконку для кнопки "Назад'
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
 function ProductPage( ) {
-  const { id } = useParams();
+  const { productId } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,7 +17,7 @@ function ProductPage( ) {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/products/${id}`);
+        const response = await fetch(`${API_BASE_URL}/products/${productId}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -33,7 +33,7 @@ function ProductPage( ) {
     };
 
     fetchProduct();
-  }, [id]);
+  }, [productId]);
 
   if (loading) {
     return (
@@ -140,3 +140,5 @@ function ProductPage( ) {
 }
 
 export default ProductPage;
+
+

@@ -1,8 +1,8 @@
+// components/ui/use-toast.js (СТАНДАРТНАЯ РЕАЛИЗАЦИЯ SHADCN/UI)
 import * as React from "react"
-import { ToastAction } from "./toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_LIMIT = 1 // Сколько тостов может быть одновременно
+const TOAST_REMOVE_DELAY = 5000 // Длительность по умолчанию, если не указана в тосте
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -20,7 +20,7 @@ function genId() {
 
 const toastTimeouts = new Map()
 
-const addToRemoveQueue = (toastId) => {
+function addToRemoveQueue(toastId) {
   if (toastTimeouts.has(toastId)) {
     return
   }
@@ -55,7 +55,6 @@ export const reducer = (state, action) => {
     case actionTypes.DISMISS_TOAST:
       const { toastId } = action
 
-      // ! This is a hacky way to ensure toast is not dismissed immediately
       if (toastId) {
         addToRemoveQueue(toastId)
       } else {
@@ -92,13 +91,14 @@ const listeners = []
 let memoryState = { toasts: [] }
 
 function dispatch(action) {
+  console.log('useToast dispatching action:', action);
   memoryState = reducer(memoryState, action)
   listeners.forEach((listener) => {
     listener(memoryState)
   })
 }
 
-function useToast() {
+export function useToast() {
   const [state, setState] = React.useState(memoryState)
 
   React.useEffect(() => {
@@ -111,11 +111,32 @@ function useToast() {
     }
   }, [state])
 
+  // return {
+  //   ...state,
+  //   toast: React.useCallback(function toast({
+  //     ...props
+  //   }) {
+  //     const id = genId()
+
+  //     const update = (props) => dispatch({ type: actionTypes.UPDATE_TOAST, toast: { props, id } })
+  //     const dismiss = () => dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id })
+
+  //     dispatch({
+  //       type: actionTypes.ADD_TOAST,
+  //       toast: {
+  //         props: {
+  //           ...props,
+  //           id,
+  //           open: true,
+  //           onOpenChange: (open) => {
+  //             if (!open) dismiss()
+  //           },
+  //         },
+  //       },
+  //     })
   return {
     ...state,
-    toast: React.useCallback(function toast({
-      ...props
-    }) {
+    toast: React.useCallback(function toast(propsFromCall) { // propsFromCall здесь будет игнорироваться
       const id = genId()
 
       const update = (props) => dispatch({ type: actionTypes.UPDATE_TOAST, toast: { props, id } })
@@ -125,7 +146,11 @@ function useToast() {
         type: actionTypes.ADD_TOAST,
         toast: {
           props: {
-            ...props,
+            // ЖЕСТКО КОДИРУЕМ ПРОПСЫ ДЛЯ ТЕСТА
+            title: "Тестовый заголовок",
+            description: "Это тестовое описание тоста.",
+            variant: "default",
+            duration: 10000, // 10 секунд
             id,
             open: true,
             onOpenChange: (open) => {
@@ -134,11 +159,8 @@ function useToast() {
           },
         },
       })
-
+      
       return { id, update, dismiss }
     }, []),
   }
 }
-
-export { useToast, reducer as toastReducer }
-
