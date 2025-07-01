@@ -11,10 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.j
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table.jsx'
 import { Search, Filter, User, Plus, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import './App.css'
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import ProductPage from './ProductPage';
 import Alert from './components/ui/Alert';
 import './components/ui/Alert.css'; 
+import CreateProductPage from './views/CreateProductPage';
 
 const API_BASE_URL = 'http://localhost:5000/api'
 
@@ -30,7 +31,6 @@ function AppContent() {
   const [itemsPerPage, setItemsPerPage] = useState(20)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
-  const [isCreateProductModalOpen, setIsCreateProductModalOpen] = useState(false)
   const [filterCount, setFilterCount] = useState(0)
   const [totalProductsCount, setTotalProductsCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -39,6 +39,7 @@ function AppContent() {
   console.log('Token:', token);
   const [alertMessage, setAlertMessage] = useState(null);
   const [alertType, setAlertType] = useState('error'); 
+  const [registrationError, setRegistrationError] = useState(null);
 
   // Фильтры
   const [filters, setFilters] = useState({
@@ -55,9 +56,9 @@ function AppContent() {
     setAlertMessage(message);
     setAlertType(type);
     // Опционально: автоматически скрывать алерт через некоторое время, как тост
-    // setTimeout(() => {
-    //   setAlertMessage(null);
-    // }, 5000); // Например, через 5 секунд
+    setTimeout(() => {
+      setAlertMessage(null);
+    }, 3000); // Например, через 5 секунд
   };
 
    // Функция для скрытия алерта
@@ -72,14 +73,6 @@ function AppContent() {
     username: ''
   })
 
-  // Форма создания товара
-  const [productForm, setProductForm] = useState({
-    name: '',
-    price: '',
-    category: '',
-    description: '',
-    in_stock: 'Да'
-  })
 // Функция для загрузки категорий с сервера  
 const fetchCategories = async () => {  
   try {  
@@ -309,6 +302,7 @@ const fetchProducts = async () => {
   
   // Регистрация
   const handleRegister = async () => {
+    setRegistrationError(null);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
@@ -320,35 +314,45 @@ const fetchProducts = async () => {
       console.log('Registration response received:', response);
 
       if (!response.ok) {
-        console.log('Response not OK. Handling error alert.');
-        const errorData = await response.json();
-        showAlert(
-          errorData.message || `HTTP error! status: ${response.status}`,
-          'error' // Используем 'error' тип для Alert
-        );
-        console.log('Error alert called for non-OK response.');
+        console.log('Response not OK. Handling error.');
+        const errorData = await response.json(); // Получаем данные ошибки один раз
+      
+        // Специальная обработка для ошибки 409 (Conflict)
+        if (response.status === 409) {
+          setRegistrationError(errorData.message || 'Пользователь с таким email или именем пользователя уже существует.');
+          console.log('Registration error (409) set for modal.');
+        } else {
+          // Для всех других HTTP ошибок, используем глобальный алерт
+          showAlert(
+            errorData.message || `HTTP error! status: ${response.status}`,
+            'error'
+          );
+          console.log('Global alert called for non-409 error.');
+        }
+      
+        // Важно: всегда выбрасываем ошибку, чтобы она попала в catch блок
+        // и могла быть обработана там, если это необходимо (например, для логирования)
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
+      
 
       console.log('Response OK. Handling success alert.');
       const data = await response.json(); // Если API возвращает данные при успехе
+      // 1. Закрываем модальное окно НЕМЕДЛЕННО
+      setIsAuthModalOpen(false);
+      setAuthForm({ email: '', password: '', username: '' }); // Сбрасываем форму
+      setRegistrationError(null); // Сбрасываем ошибку регистрации в модалке
       showAlert(
         'Регистрация успешна! Теперь вы можете войти.',
         'success' // Используем 'success' тип для Alert
       );
+      
       console.log('Success alert called.');
-
-      setTimeout(() => {
-        setIsAuthModalOpen(false); // Закрываем модальное окно
-        setAuthForm({ email: '', password: '', username: '' }); // Сбрасываем форму
-        hideAlert(); // Скрываем алерт после закрытия модального окна
-        console.log('Auth modal closed and form reset after delay.');
-      }, 100);
 
     } catch (error) {
       console.error('Ошибка регистрации в catch блоке:', error);
       // Проверяем, чтобы не дублировать алерт, если ошибка уже была обработана
-      if (!alertMessage || !error.message.includes(alertMessage)) {
+      if (error.message && !error.message.includes('HTTP error! status: 409') && (!alertMessage || !error.message.includes(alertMessage))) {
         showAlert(
           `Произошла непредвиденная ошибка: ${error.message}`,
           'error'
@@ -387,47 +391,6 @@ const fetchProducts = async () => {
     }
   }
 
-  // Создание товара (только для админа)
-  const handleCreateProduct = async () => {
-    if (!productForm.name || !productForm.price || !productForm.category) {
-      alert('Пожалуйста, заполните все обязательные поля')
-      return
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/products`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: productForm.name,
-          price: parseFloat(productForm.price),
-          category: productForm.category,
-          description: productForm.description,
-          // in_stock: productForm.in_stock === 'Да' ? true : false // Adjust based on backend expectation (boolean vs string)
-        })
-      })
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-      }
-      alert('Товар успешно создан!')
-      setProductForm({
-        name: '',
-        price: '',
-        category: '',
-        description: '',
-        in_stock: 'Да'
-      })
-      setIsCreateProductModalOpen(false)
-      fetchProducts() // Обновить список продуктов
-    } catch (error) {
-      console.error('Ошибка создания товара:', error)
-      alert(`Ошибка создания товара: ${error.message}`)
-    }
-  }
 
 return (
   <div className="min-h-screen bg-gray-50">
@@ -527,6 +490,10 @@ return (
                           onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
                         />
                       </div>
+                      {/* Здесь будет отображаться сообщение об ошибке регистрации */}
+                      {registrationError && (
+                        <p className="text-red-500 text-sm mt-2">{registrationError}</p>
+                      )}
                       <Button onClick={handleRegister} className="w-full">Зарегистрироваться</Button>
                     </TabsContent>
                   </Tabs>
@@ -560,92 +527,15 @@ return (
           </div>
           
           <div className="flex items-center space-x-4">
-            {/* {console.log('Rendering create product button. currentUser:', currentUser, 'isAdmin:', currentUser?.role === 'admin')}  */}
             {!isLoadingUser && currentUser?.role === 'admin' && (
-              <Dialog open={isCreateProductModalOpen} onOpenChange={setIsCreateProductModalOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-green-600 hover:bg-green-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Создать товар
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Создание товара</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="product-name">Название товара *</Label>
-                      <Input
-                        id="product-name"
-                        value={productForm.name}
-                        onChange={(e) => setProductForm({...productForm, name: e.target.value})}
-                        placeholder="Введите название товара"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="product-price">Цена *</Label>
-                      <Input
-                        id="product-price"
-                        type="number"
-                        step="0.01"
-                        value={productForm.price}
-                        onChange={(e) => setProductForm({...productForm, price: e.target.value})}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Категория *</Label>
-                      <Select value={productForm.category} onValueChange={(value) => setProductForm({...productForm, category: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите категорию" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map(category => (
-                            <SelectItem key={category.name} value={category}>{category}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="product-description">Описание</Label>
-                      <Input
-                        id="product-description"
-                        value={productForm.description}
-                        onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                        placeholder="Описание товара"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>В наличии</Label>
-                      <RadioGroup value={productForm.in_stock} onValueChange={(value) => setProductForm({...productForm, in_stock: value})}>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Да" id="stock-yes" />
-                          <Label htmlFor="stock-yes">Да</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Под заказ" id="stock-order" />
-                          <Label htmlFor="stock-order">Под заказ</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    
-                    <div className="flex space-x-2 pt-4">
-                      <Button onClick={handleCreateProduct} className="flex-1">
-                        Создать
-                      </Button>
-                      <Button onClick={() => setIsCreateProductModalOpen(false)} variant="outline" className="flex-1">
-                        Отмена
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )} 
+              <Link to="/create-product">
+                <Button className="bg-green-600 hover:bg-green-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Создать товар
+                </Button>
+              </Link>
+            )}
+              
             <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
@@ -927,20 +817,21 @@ return (
         </div>
       </footer>
     </div>
-    )
+  );
 }
 
-
-
+// Основная функция App с маршрутизацией
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<AppContent />} />
-        <Route path="/product/:productId" element={<ProductPage />} />
+        <Route path="/product/:id" element={<ProductPage />} />
+        <Route path="/create-product" element={<CreateProductPage />} />
       </Routes>
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;
+
