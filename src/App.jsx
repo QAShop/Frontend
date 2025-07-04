@@ -37,7 +37,7 @@ function AppContent() {
   const [token, setToken] = useState(localStorage.getItem('jwt_token'))
   const [categories, setCategories] = useState([]) 
   console.log('Token:', token);
-  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertMessage, setAlertMessage] = useState(null); 
   const [alertType, setAlertType] = useState('error'); 
   const [registrationError, setRegistrationError] = useState(null);
 
@@ -709,7 +709,7 @@ return (
               {Array.isArray(products) && products.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>
-                    <Link to={`/product/${product.id}`} className="text-blue-600 hover:underline font-medium">
+                    <Link to={`/products/${product.id}`} className="text-blue-600 hover:underline font-medium">
                       {product.id}
                     </Link>
                   </TableCell>
@@ -826,7 +826,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<AppContent />} />
-        <Route path="/product/:id" element={<ProductPage />} />
+        <Route path="/products/:productId" element={<ProductPage />} />
         <Route path="/create-product" element={<CreateProductPage />} />
       </Routes>
     </Router>
