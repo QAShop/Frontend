@@ -12,9 +12,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Search, Filter, User, Plus, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import './App.css'
 import { Link } from 'react-router-dom';
-import Alert from './components/ui/Alert';
+import Alert from './components/ui/alert.jsx';
 import './components/ui/Alert.css';
+import ConfirmDialog from './components/ui/ConfirmDialog.jsx';
 import { useAuth } from './context/AuthContext';
+
 
 const API_BASE_URL = 'http://localhost:5000/api'
 
@@ -37,6 +39,11 @@ export function AppContent( ) {
   const [alertMessage, setAlertMessage] = useState(null);
   const [alertType, setAlertType] = useState('error');
   const [registrationError, setRegistrationError] = useState(null);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({
+    isOpen: false,
+    productId: null,
+    productName: ''
+  });
 
   // Фильтры
   const [filters, setFilters] = useState({
@@ -263,27 +270,45 @@ const fetchProducts = async () => {
   };
 
   // Удаление товара (только для админа)
-  const handleDeleteProduct = async (productId) => {
-    if (window.confirm('Вы уверены, что хотите удалить этот товар?')) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('jwt_token')}` // Используем токен из localStorage
-          }
-        })
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+  const handleDeleteProduct = (productId, productName) => {
+    setDeleteConfirmDialog({
+      isOpen: true,
+      productId: productId,
+      productName: productName || `товар #${productId}`
+    });
+  };
+
+  // Подтверждение удаления товара
+  const confirmDeleteProduct = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/${deleteConfirmDialog.productId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('jwt_token')}` // Используем токен из localStorage
         }
-        alert('Товар успешно удален!')
-        fetchProducts() // Обновить список продуктов
-      } catch (error) {
-        console.error('Ошибка удаления товара:', error)
-        alert(`Ошибка удаления товара: ${error.message}`)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
+      
+      showAlert('Товар успешно удален!', 'success');
+      fetchProducts(); // Обновить список продуктов
+    } catch (error) {
+      console.error('Ошибка удаления товара:', error);
+      showAlert(`Ошибка удаления товара: ${error.message}`, 'error');
     }
-  }
+  };
+
+  // Закрытие диалога подтверждения удаления
+  const closeDeleteConfirmDialog = () => {
+    setDeleteConfirmDialog({
+      isOpen: false,
+      productId: null,
+      productName: ''
+    });
+  };
 
 
 return (
@@ -611,7 +636,7 @@ return (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteProduct(product.id)}
+                        onClick={() => handleDeleteProduct(product.id, product.name)}
                         className="text-red-600 hover:text-red-800"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -697,6 +722,18 @@ return (
           © 2024 QA Shop. Все права защищены.
         </div>
       </footer>
+
+      {/* Диалог подтверждения удаления */}
+      <ConfirmDialog
+        isOpen={deleteConfirmDialog.isOpen}
+        onClose={closeDeleteConfirmDialog}
+        onConfirm={confirmDeleteProduct}
+        title="Удаление товара"
+        message={`Вы уверены, что хотите удалить "${deleteConfirmDialog.productName}"? Это действие нельзя отменить.`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+        variant="destructive"
+      />
     </div>
   );
 }

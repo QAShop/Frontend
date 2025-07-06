@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
@@ -12,14 +12,16 @@ import '../components/ui/Alert.css';
 
 import { API_BASE_URL } from '../config';
 
-function CreateProductPage() {
+function EditProductPage() {
   const navigate = useNavigate();
+  const { productId } = useParams();
   const [token] = useState(localStorage.getItem('jwt_token'));
   const [categories, setCategories] = useState([]);
   const [alertMessage, setAlertMessage] = useState(null);
   const [alertType, setAlertType] = useState('error');
+  const [loading, setLoading] = useState(true);
   
-  // Форма создания товара
+  // Форма редактирования товара
   const [productForm, setProductForm] = useState({
     name: '',
     price: '',
@@ -64,20 +66,49 @@ function CreateProductPage() {
     }
   };
 
+  // Загрузка данных товара для редактирования
+  const fetchProduct = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/products/${productId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      const product = data.product;
+      
+      // Заполняем форму данными товара
+      setProductForm({
+        name: product.name || '',
+        price: product.price ? product.price.toString() : '',
+        category: product.category?.id || product.category || 0,
+        description: product.description || '',
+        image_url: product.image_url || '',
+        in_stock: product.in_stock ? 'Да' : 'Под заказ'
+      });
+    } catch (error) {
+      console.error('Ошибка при загрузке товара:', error);
+      showAlert(`Ошибка при загрузке товара: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
-  }, []);
+    fetchProduct();
+  }, [productId]);
 
-  // Создание товара
-  const handleCreateProduct = async () => {
+  // Обновление товара
+  const handleUpdateProduct = async () => {
     if (!productForm.name || !productForm.price || !productForm.category || productForm.category === 0) {
       showAlert('Пожалуйста, заполните все обязательные поля', 'error');
       return;
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/products/create`, {
-        method: 'POST',
+      const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -85,7 +116,7 @@ function CreateProductPage() {
         body: JSON.stringify({
           name: productForm.name,
           price: parseFloat(productForm.price),
-          category: productForm.category, // Теперь отправляем ID категории
+          category: productForm.category, // Отправляем ID категории
           description: productForm.description,
           image_url: productForm.image_url,
           in_stock: productForm.in_stock === 'Да'
@@ -97,28 +128,26 @@ function CreateProductPage() {
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      showAlert('Товар успешно создан!', 'success');
-      
-      // Сбрасываем форму
-      setProductForm({
-        name: '',
-        price: '',
-        category: 0,
-        description: '',
-        image_url: '',
-        in_stock: 'Да'
-      });
+      showAlert('Товар успешно обновлен!', 'success');
 
-      // Перенаправляем на главную страницу через 2 секунды
+      // Перенаправляем на страницу товара через 2 секунды
       setTimeout(() => {
-        navigate('/');
+        navigate(`/products/${productId}`);
       }, 2000);
 
     } catch (error) {
-      console.error('Ошибка создания товара:', error);
-      showAlert(`Ошибка создания товара: ${error.message}`, 'error');
+      console.error('Ошибка обновления товара:', error);
+      showAlert(`Ошибка обновления товара: ${error.message}`, 'error');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <p className="text-lg text-gray-700">Загрузка товара...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -140,11 +169,11 @@ function CreateProductPage() {
               <nav className="hidden md:flex space-x-6">
                 <Button 
                   variant="ghost" 
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate(`/products/${productId}`)}
                   className="text-blue-600 font-medium"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Назад к продуктам
+                  Назад к товару
                 </Button>
               </nav>
             </div>
@@ -157,7 +186,7 @@ function CreateProductPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-gray-900">
-              Создание нового товара
+              Редактирование товара
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -263,11 +292,11 @@ function CreateProductPage() {
             </div>
             
             <div className="flex space-x-4 pt-6">
-              <Button onClick={handleCreateProduct} className="flex-1">
-                Создать товар
+              <Button onClick={handleUpdateProduct} className="flex-1">
+                Сохранить изменения
               </Button>
               <Button 
-                onClick={() => navigate('/')} 
+                onClick={() => navigate(`/products/${productId}`)} 
                 variant="outline" 
                 className="flex-1"
               >
@@ -281,6 +310,5 @@ function CreateProductPage() {
   );
 }
 
-export default CreateProductPage;
-
+export default EditProductPage;
 

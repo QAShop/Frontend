@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom'; // Добавил Link для кнопки "Назад"
+import { useParams, Link, useNavigate } from 'react-router-dom'; // Добавил useNavigate для редиректа
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button'; // Добавил Button
-import { ChevronLeft } from 'lucide-react'; // Добавил иконку для кнопки "Назад'
+import { ChevronLeft, Edit, Trash2 } from 'lucide-react'; // Добавил иконки для редактирования и удаления
+import { useAuth } from './context/AuthContext'; // Добавил контекст авторизации
+import ConfirmDialog from '@/components/ui/ConfirmDialog.jsx'; // Добавил кастомный диалог подтверждения
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
 function ProductPage( ) {
   const { productId } = useParams();
+  const navigate = useNavigate(); // Для редиректа
+  const { currentUser } = useAuth(); // Получаем текущего пользователя
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({
+    isOpen: false,
+    productName: ''
+  });
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -34,6 +42,50 @@ function ProductPage( ) {
 
     fetchProduct();
   }, [productId]);
+
+  // Функция удаления товара
+  const handleDeleteProduct = () => {
+    setDeleteConfirmDialog({
+      isOpen: true,
+      productName: product?.name || `товар #${productId}`
+    });
+  };
+
+  // Подтверждение удаления товара
+  const confirmDeleteProduct = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      alert('Товар успешно удален!');
+      navigate('/'); // Редирект на главную страницу
+    } catch (error) {
+      console.error('Ошибка удаления товара:', error);
+      alert(`Ошибка удаления товара: ${error.message}`);
+    }
+  };
+
+  // Закрытие диалога подтверждения удаления
+  const closeDeleteConfirmDialog = () => {
+    setDeleteConfirmDialog({
+      isOpen: false,
+      productName: ''
+    });
+  };
+
+  // Функция перехода к редактированию товара
+  const handleEditProduct = () => {
+    navigate(`/edit-product/${productId}`);
+  };
 
   if (loading) {
     return (
@@ -124,16 +176,52 @@ function ProductPage( ) {
                   </p>
                 </div>
 
-                {/* Кнопки действий, если нужны (например, "Добавить в корзину") */}
-                <div className="pt-4">
+                {/* Кнопки действий */}
+                <div className="pt-4 space-y-3">
                   <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg py-3">
                     Добавить в корзину
                   </Button>
+                  
+                  {/* Кнопки для администратора */}
+                  {currentUser?.role === 'admin' && (
+                    <div className="flex space-x-3">
+                      <Button 
+                        onClick={handleEditProduct}
+                        size="lg" 
+                        variant="outline" 
+                        className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Редактировать
+                      </Button>
+                      <Button 
+                        onClick={handleDeleteProduct}
+                        size="lg" 
+                        variant="outline" 
+                        className="flex-1 border-red-600 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Удалить
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Диалог подтверждения удаления */}
+        <ConfirmDialog
+          isOpen={deleteConfirmDialog.isOpen}
+          onClose={closeDeleteConfirmDialog}
+          onConfirm={confirmDeleteProduct}
+          title="Удаление товара"
+          message={`Вы уверены, что хотите удалить "${deleteConfirmDialog.productName}"? Это действие нельзя отменить.`}
+          confirmText="Удалить"
+          cancelText="Отмена"
+          variant="destructive"
+        />
       </div>
     </div>
   );
