@@ -18,7 +18,7 @@ import { useAuth } from './context/AuthContext';
 
 const API_BASE_URL = 'http://localhost:5000/api'
 
-export function AppContent() {
+export function AppContent( ) {
   const { currentUser, isLoadingUser, logout, login, register } = useAuth(); // Используем хук useAuth
 
   const [products, setProducts] = useState([])
@@ -47,8 +47,13 @@ export function AppContent() {
     dateTo: '',
     inStock: ''
   })
+  const [tempFilters, setTempFilters] = useState(filters);
 
-  // Функция для показа алерта
+  useEffect(() => {
+    if (isFilterModalOpen) {
+      setTempFilters(filters);
+    }
+  }, [isFilterModalOpen]); // Функция для показа алерта
   const showAlert = (message, type) => {
     setAlertMessage(message);
     setAlertType(type);
@@ -99,15 +104,15 @@ const fetchCategories = async () => {
 
   // Обновите обработчик изменения категории
   const handleCategoryChange = (category) => {
-    setFilters({
-    ...filters,
+    setTempFilters({
+    ...tempFilters,
     category: category
   })
     }
 
   useEffect(() => {
     fetchProducts()
-  }, [searchQuery, currentPage, itemsPerPage, sortField, sortDirection])
+  }, [searchQuery, currentPage, itemsPerPage, sortField, sortDirection, filters])
 
 // Загрузка продуктов
 const fetchProducts = async () => {
@@ -183,15 +188,15 @@ const fetchProducts = async () => {
 
   // Применение фильтров
   const applyFilters = () => {
-    fetchProducts()
-    setIsFilterModalOpen(false)
+    setFilters(tempFilters);
+    setIsFilterModalOpen(false);
 
-    let count = 0
-    if (filters.category) count++
-    if (filters.priceMin || filters.priceMax) count++
-    if (filters.dateFrom || filters.dateTo) count++
-    if (filters.inStock) count++
-    setFilterCount(count)
+    let count = 0;
+    if (tempFilters.category) count++;
+    if (tempFilters.priceMin || tempFilters.priceMax) count++;
+    if (tempFilters.dateFrom || tempFilters.dateTo) count++;
+    if (tempFilters.inStock) count++;
+    setFilterCount(count);
   }
 
   // Сортировка
@@ -208,18 +213,19 @@ const fetchProducts = async () => {
 
   // Сброс фильтров
   const resetFilters = () => {
-    setFilters({
+    const defaultFilters = {
       category: '',
       priceMin: '',
       priceMax: '',
       dateFrom: '',
       dateTo: '',
       inStock: ''
-    })
-    setFilterCount(0)
-    setCurrentPage(1)
-    setIsFilterModalOpen(false)
-    fetchProducts()
+    };
+    setTempFilters(defaultFilters);
+    setFilters(defaultFilters);
+    setFilterCount(0);
+    setCurrentPage(1);
+    setIsFilterModalOpen(false);
   }
 
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -430,11 +436,11 @@ return (
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Категория</Label>
-                    <Select value={filters.category ? filters.category.toString() : ""} onValueChange={(value) => {
+                    <Select value={tempFilters.category ? tempFilters.category.toString() : ""} onValueChange={(value) => {
                       if (value === "all") {
-                        setFilters({...filters, category: null});
+                        setTempFilters({...tempFilters, category: null});
                       } else {
-                        setFilters({...filters, category: Number(value)}); 
+                        setTempFilters({...tempFilters, category: Number(value)}); 
                       }
                     }}
                       >
@@ -455,14 +461,14 @@ return (
                       <Input
                         placeholder="От"
                         type="number"
-                        value={filters.priceMin}
-                        onChange={(e) => setFilters({...filters, priceMin: e.target.value})}
+                        value={tempFilters.priceMin}
+                        onChange={(e) => setTempFilters({...tempFilters, priceMin: e.target.value})}
                       />
                       <Input
                         placeholder="До"
                         type="number"
-                        value={filters.priceMax}
-                        onChange={(e) => setFilters({...filters, priceMax: e.target.value})}
+                        value={tempFilters.priceMax}
+                        onChange={(e) => setTempFilters({...tempFilters, priceMax: e.target.value})}
                       />
                     </div>
                   </div>
@@ -472,21 +478,21 @@ return (
                     <div className="flex space-x-2">
                       <Input
                         type="date"
-                        value={filters.dateFrom}
-                        onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+                        value={tempFilters.dateFrom}
+                        onChange={(e) => setTempFilters({...tempFilters, dateFrom: e.target.value})}
                       />
                       <Input
                         type="date"
-                        value={filters.dateTo}
-                        onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                        value={tempFilters.dateTo}
+                        onChange={(e) => setTempFilters({...tempFilters, dateTo: e.target.value})}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label>В наличии</Label>
-                    <RadioGroup value={filters.inStock !== undefined ? String(filters.inStock) : undefined}
-                    onValueChange={(value) => setFilters({...filters, inStock: value === "true" ? true : false})}>
+                    <RadioGroup value={tempFilters.inStock !== undefined ? String(tempFilters.inStock) : undefined}
+                    onValueChange={(value) => setTempFilters({...tempFilters, inStock: value === "true" ? true : false})}>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="true" id="yes" />
                         <Label htmlFor="yes">Да</Label>
@@ -694,5 +700,3 @@ return (
     </div>
   );
 }
-
-
