@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'; // Добавил Button
 import { ChevronLeft, Edit, Trash2 } from 'lucide-react'; // Добавил иконки для редактирования и удаления
 import { useAuth } from './context/AuthContext'; // Добавил контекст авторизации
 import ConfirmDialog from '@/components/ui/ConfirmDialog.jsx'; // Добавил кастомный диалог подтверждения
+import placeholderImage from '@/assets/197dfaf0172a5.jpg'; 
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -135,9 +136,11 @@ function ProductPage( ) {
                     className="max-w-full h-auto max-h-96 object-contain rounded-md"
                   />
                 ) : (
-                  <div className="w-full h-64 flex items-center justify-center bg-gray-200 text-gray-500 rounded-md">
-                    Нет изображения
-                  </div>
+                  <img
+                    src={placeholderImage}
+                    alt="Изображение отсутствует"
+                    className="max-w-full h-auto max-h-96 object-contain rounded-md"
+                  />
                 )}
               </div>
 

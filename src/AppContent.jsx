@@ -1,59 +1,98 @@
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button.jsx'
-import { Input } from '@/components/ui/input.jsx'
-import { Badge } from '@/components/ui/badge.jsx'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog.jsx'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx'
-import { Label } from '@/components/ui/label.jsx'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group.jsx'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table.jsx'
-import { Search, Filter, User, Plus, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
-import './App.css'
-import { Link } from 'react-router-dom';
-import Alert from './components/ui/alert.jsx';
-import './components/ui/Alert.css';
-import ConfirmDialog from './components/ui/ConfirmDialog.jsx';
-import { useAuth } from './context/AuthContext';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button.jsx";
+import { Input } from "@/components/ui/input.jsx";
+import { Badge } from "@/components/ui/badge.jsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog.jsx";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs.jsx";
+import { Label } from "@/components/ui/label.jsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.jsx";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group.jsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.jsx";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table.jsx";
+import {
+  Search,
+  Filter,
+  User,
+  Plus,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import "./App.css";
+import { Link } from "react-router-dom";
+import Alert from "./components/ui/alert.jsx";
+import "./components/ui/Alert.css";
+import ConfirmDialog from "./components/ui/ConfirmDialog.jsx";
+import { useAuth } from "./context/AuthContext";
+import logo from './assets/AszeAv282h.png'
 
 
-const API_BASE_URL = 'http://localhost:5000/api'
+const API_BASE_URL = "http://localhost:5000/api";
 
-export function AppContent( ) {
+export function AppContent() {
   const { currentUser, isLoadingUser, logout, login, register } = useAuth(); // Используем хук useAuth
-
-  const [products, setProducts] = useState([])
-  const [filteredProducts, setFilteredProducts] = useState([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [sortField, setSortField] = useState('')
-  const [sortDirection, setSortDirection] = useState('asc')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(20)
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
-  const [filterCount, setFilterCount] = useState(0)
+  const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState("");
+  const [sortDirection, setSortDirection] = useState("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filterCount, setFilterCount] = useState(0);
   const [totalProductsCount, setTotalProductsCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [categories, setCategories] = useState([])
+  const [categories, setCategories] = useState([]);
   const [alertMessage, setAlertMessage] = useState(null);
-  const [alertType, setAlertType] = useState('error');
+  const [alertType, setAlertType] = useState("error");
   const [registrationError, setRegistrationError] = useState(null);
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({
     isOpen: false,
     productId: null,
-    productName: ''
+    productName: "",
   });
 
   // Фильтры
   const [filters, setFilters] = useState({
-    category: '',
-    priceMin: '',
-    priceMax: '',
-    dateFrom: '',
-    dateTo: '',
-    inStock: ''
-  })
+    category: "",
+    priceMin: "",
+    priceMax: "",
+    dateFrom: "",
+    dateTo: "",
+    inStock: "",
+  });
   const [tempFilters, setTempFilters] = useState(filters);
 
   useEffect(() => {
@@ -69,129 +108,136 @@ export function AppContent( ) {
     }, 3000);
   };
 
-   // Функция для скрытия алерта
-   const hideAlert = () => {
+  // Функция для скрытия алерта
+  const hideAlert = () => {
     setAlertMessage(null);
   };
 
   // Форма авторизации
   const [authForm, setAuthForm] = useState({
-    email: '',
-    password: '',
-    username: ''
-  })
+    email: "",
+    password: "",
+    username: "",
+  });
 
-// Функция для загрузки категорий с сервера
-const fetchCategories = async () => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/products/categories`, {
-      headers: {
-        'Content-Type': 'application/json'
+  // Функция для загрузки категорий с сервера
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/categories`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    })
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const data = await response.json();
+      console.log("Loaded categories:", data);
+
+      setCategories(data.categories || []);
+    } catch (error) {
+      console.error("Ошибка при загрузке категорий:", error);
+      setCategories([]);
     }
-
-    const data = await response.json()
-    console.log('Loaded categories:', data)
-
-    setCategories(data.categories || [])
-  } catch (error) {
-    console.error('Ошибка при загрузке категорий:', error)
-    setCategories([])
-  }
-  }
+  };
 
   // Вызываем функцию загрузки категорий при монтировании компонента
   useEffect(() => {
-    fetchCategories()
-  }, [])
+    fetchCategories();
+  }, []);
 
   // Обновите обработчик изменения категории
   const handleCategoryChange = (category) => {
     setTempFilters({
-    ...tempFilters,
-    category: category
-  })
-    }
+      ...tempFilters,
+      category: category,
+    });
+  };
 
   useEffect(() => {
-    fetchProducts()
-  }, [searchQuery, currentPage, itemsPerPage, sortField, sortDirection, filters])
+    fetchProducts();
+  }, [
+    searchQuery,
+    currentPage,
+    itemsPerPage,
+    sortField,
+    sortDirection,
+    filters,
+  ]);
 
-// Загрузка продуктов
-const fetchProducts = async () => {
-  try {
-    let url = `${API_BASE_URL}/products/get-products`
+  // Загрузка продуктов
+  const fetchProducts = async () => {
+    try {
+      let url = `${API_BASE_URL}/products/get-products`;
 
-    const params = new URLSearchParams()
-    params.append('page', currentPage)
-    params.append('limit', itemsPerPage)
-    url = `${url}?${params.toString()}`
+      const params = new URLSearchParams();
+      params.append("page", currentPage);
+      params.append("limit", itemsPerPage);
+      url = `${url}?${params.toString()}`;
 
-    const requestBody = {}
+      const requestBody = {};
 
-    if (searchQuery) {
-      requestBody.search_query = searchQuery
+      if (searchQuery) {
+        requestBody.search_query = searchQuery;
+      }
+
+      if (filters.category) {
+        requestBody.category_id = filters.category;
+      }
+      if (filters.priceMin) {
+        requestBody.min_price = filters.priceMin;
+      }
+      if (filters.priceMax) {
+        requestBody.max_price = filters.priceMax;
+      }
+      if (filters.dateFrom) {
+        requestBody.created_from = filters.dateFrom;
+      }
+      if (filters.dateTo) {
+        requestBody.created_to = filters.dateTo;
+      }
+      if (filters.inStock !== undefined && filters.inStock !== "") {
+        requestBody.in_stock = filters.inStock;
+      }
+      if (sortField) {
+        requestBody.sort_by = sortField;
+        requestBody.sort_order = sortDirection;
+      }
+
+      console.log("Fetching products from:", url);
+      console.log("Request body:", requestBody);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Received data for products:", data);
+
+      const fetchedProducts = Array.isArray(data.products) ? data.products : [];
+      console.log("Processed products:", fetchedProducts);
+      setProducts(fetchedProducts);
+      setFilteredProducts(fetchedProducts);
+      setTotalProductsCount(data.total || 0);
+      setTotalPages(data.pages || 0);
+    } catch (error) {
+      console.error("Ошибка при загрузке продуктов:", error);
+      setProducts([]);
+      setFilteredProducts([]);
+      setTotalProductsCount(0);
+      setTotalPages(0);
     }
-
-    if (filters.category) {
-      requestBody.category_id = filters.category
-    }
-    if (filters.priceMin) {
-      requestBody.min_price = filters.priceMin
-    }
-    if (filters.priceMax) {
-      requestBody.max_price = filters.priceMax
-    }
-    if (filters.dateFrom) {
-      requestBody.created_from = filters.dateFrom
-    }
-    if (filters.dateTo) {
-      requestBody.created_to = filters.dateTo
-    }
-    if (filters.inStock !== undefined && filters.inStock !== "") {
-      requestBody.in_stock = filters.inStock
-    }
-    if (sortField) {
-      requestBody.sort_by = sortField
-      requestBody.sort_order = sortDirection
-    }
-
-    console.log('Fetching products from:', url)
-    console.log('Request body:', requestBody)
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data = await response.json()
-    console.log('Received data for products:', data)
-
-    const fetchedProducts = Array.isArray(data.products) ? data.products : [];
-    console.log('Processed products:', fetchedProducts)
-    setProducts(fetchedProducts)
-    setFilteredProducts(fetchedProducts)
-    setTotalProductsCount(data.total || 0);
-    setTotalPages(data.pages || 0);
-  } catch (error) {
-    console.error('Ошибка при загрузке продуктов:', error)
-    setProducts([])
-    setFilteredProducts([])
-    setTotalProductsCount(0);
-    setTotalPages(0);
-  }
-  }
+  };
 
   // Применение фильтров
   const applyFilters = () => {
@@ -204,67 +250,80 @@ const fetchProducts = async () => {
     if (tempFilters.dateFrom || tempFilters.dateTo) count++;
     if (tempFilters.inStock) count++;
     setFilterCount(count);
-  }
+  };
 
   // Сортировка
   const handleSort = (field) => {
-    const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc'
-    if (field === 'category') {
-      setSortField('category.name');
-  } else {
+    const direction =
+      sortField === field && sortDirection === "asc" ? "desc" : "asc";
+    if (field === "category") {
+      setSortField("category.name");
+    } else {
       setSortField(field);
-  }
-    setSortDirection(direction)
-    setCurrentPage(1)
-  }
+    }
+    setSortDirection(direction);
+    setCurrentPage(1);
+  };
 
   // Сброс фильтров
   const resetFilters = () => {
     const defaultFilters = {
-      category: '',
-      priceMin: '',
-      priceMax: '',
-      dateFrom: '',
-      dateTo: '',
-      inStock: ''
+      category: "",
+      priceMin: "",
+      priceMax: "",
+      dateFrom: "",
+      dateTo: "",
+      inStock: "",
     };
     setTempFilters(defaultFilters);
     setFilters(defaultFilters);
     setFilterCount(0);
     setCurrentPage(1);
     setIsFilterModalOpen(false);
-  }
+  };
 
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentEndIndex = Math.min(startIndex + products.length, totalProductsCount);
-  const currentProducts = Array.isArray(products) ? products.slice(startIndex, endIndex) : [];
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentEndIndex = Math.min(
+    startIndex + products.length,
+    totalProductsCount
+  );
+  const currentProducts = Array.isArray(products)
+    ? products.slice(startIndex, endIndex)
+    : [];
 
   // Авторизация
   const handleLogin = async () => {
     const { success, error } = await login(authForm.email, authForm.password);
     if (success) {
       setIsAuthModalOpen(false);
-      setAuthForm({ email: '', password: '', username: '' });
+      setAuthForm({ email: "", password: "", username: "" });
     } else {
-      showAlert(`Ошибка входа: ${error}`, 'error');
+      showAlert(`Ошибка входа: ${error}`, "error");
     }
   };
 
   // Регистрация
   const handleRegister = async () => {
     setRegistrationError(null);
-    const { success, error } = await register(authForm.username, authForm.email, authForm.password);
+    const { success, error } = await register(
+      authForm.username,
+      authForm.email,
+      authForm.password
+    );
     if (success) {
       setIsAuthModalOpen(false);
-      setAuthForm({ email: '', password: '', username: '' });
+      setAuthForm({ email: "", password: "", username: "" });
       setRegistrationError(null);
-      showAlert('Регистрация успешна! Теперь вы можете войти.', 'success');
+      showAlert("Регистрация успешна! Теперь вы можете войти.", "success");
     } else {
-      if (error.includes('409')) {
-        setRegistrationError(error.replace('HTTP error! status: 409: ', '') || 'Пользователь с таким email или именем пользователя уже существует.');
+      if (error.includes("409")) {
+        setRegistrationError(
+          error.replace("HTTP error! status: 409: ", "") ||
+            "Пользователь с таким email или именем пользователя уже существует."
+        );
       } else {
-        showAlert(`Произошла непредвиденная ошибка: ${error}`, 'error');
+        showAlert(`Произошла непредвиденная ошибка: ${error}`, "error");
       }
     }
   };
@@ -274,30 +333,35 @@ const fetchProducts = async () => {
     setDeleteConfirmDialog({
       isOpen: true,
       productId: productId,
-      productName: productName || `товар #${productId}`
+      productName: productName || `товар #${productId}`,
     });
   };
 
   // Подтверждение удаления товара
   const confirmDeleteProduct = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/products/${deleteConfirmDialog.productId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('jwt_token')}` // Используем токен из localStorage
+      const response = await fetch(
+        `${API_BASE_URL}/products/${deleteConfirmDialog.productId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("jwt_token")}`, // Используем токен из localStorage
+          },
         }
-      });
-      
+      );
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
       }
-      
-      showAlert('Товар успешно удален!', 'success');
+
+      showAlert("Товар успешно удален!", "success");
       fetchProducts(); // Обновить список продуктов
     } catch (error) {
-      console.error('Ошибка удаления товара:', error);
-      showAlert(`Ошибка удаления товара: ${error.message}`, 'error');
+      console.error("Ошибка удаления товара:", error);
+      showAlert(`Ошибка удаления товара: ${error.message}`, "error");
     }
   };
 
@@ -306,363 +370,515 @@ const fetchProducts = async () => {
     setDeleteConfirmDialog({
       isOpen: false,
       productId: null,
-      productName: ''
+      productName: "",
     });
   };
 
-
-return (
-  <div className="min-h-screen bg-gray-50">
-    <div className="global-alert-container">
-      <Alert
-        message={alertMessage}
-        type={alertType}
-        onClose={hideAlert}
-      />
-    </div>
-    <header className="bg-white shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-8">
-            <h1 className="text-2xl font-bold text-blue-600">QA Shop</h1>
-            <nav className="hidden md:flex space-x-6">
-              <Link to="/" className="text-blue-600 font-medium">Продукты</Link>
-              <a href="#" className="text-gray-500 hover:text-gray-700">Категории</a>
-              <a href="#" className="text-gray-500 hover:text-gray-700">Акции</a>
-              <a href="#" className="text-gray-500 hover:text-gray-700">О нас</a>
-            </nav>
-          </div>
-          <div>
-            {currentUser ? (
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600">Привет, {currentUser.email}</span>
-                <Button variant="ghost" size="sm" onClick={logout}>
-                  <User className="h-4 w-4 mr-2" />
-                  Личный кабинет
-                </Button>
-              </div>
-            ) : (
-              <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
-                <DialogTrigger asChild>
-                  <Button>Войти / Зарегистрироваться</Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Авторизация</DialogTitle>
-                  </DialogHeader>
-                  <Tabs defaultValue="login" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="login">Вход</TabsTrigger>
-                      <TabsTrigger value="register">Регистрация</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="login" className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={authForm.email}
-                          onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-                          placeholder="admin@example.com"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="password">Пароль</Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          value={authForm.password}
-                          onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-                        />
-                      </div>
-                      <Button onClick={handleLogin} className="w-full">Войти</Button>
-                    </TabsContent>
-                    <TabsContent value="register" className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="username">Имя пользователя</Label>
-                        <Input
-                          id="username"
-                          value={authForm.username}
-                          onChange={(e) => setAuthForm({...authForm, username: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="reg-email">Email</Label>
-                        <Input
-                          id="reg-email"
-                          type="email"
-                          value={authForm.email}
-                          onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="reg-password">Пароль</Label>
-                        <Input
-                          id="reg-password"
-                          type="password"
-                          value={authForm.password}
-                          onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-                        />
-                      </div>
-                      {registrationError && (
-                        <p className="text-red-500 text-sm mt-2">{registrationError}</p>
-                      )}
-                      <Button onClick={handleRegister} className="w-full">Зарегистрироваться</Button>
-                    </TabsContent>
-                  </Tabs>
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
-        </div>
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="global-alert-container">
+        <Alert message={alertMessage} type={alertType} onClose={hideAlert} />
       </div>
-    </header>
-
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">
-          Продукты ({totalProductsCount})
-        </h2>
-
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-          <div className="flex-1 max-w-md">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Введите id или наименование продукта"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-8">
+              <Link to="/">
+                <img src={logo} alt="QA Automation Garage Logo" className="h-18" />
+              </Link>
+              <nav className="hidden md:flex space-x-6 ml-6">
+                <Link to="/" className="text-blue-600 font-medium">
+                  Продукты
+                </Link>
+                <a href="#" className="text-gray-500 hover:text-gray-700">
+                  Категории
+                </a>
+                <a href="#" className="text-gray-500 hover:text-gray-700">
+                  По шагам
+                </a>
+                <a href="#" className="text-gray-500 hover:text-gray-700">
+                  О проекте
+                </a>
+              </nav>
+            </div>
+            <div>
+              {currentUser ? (
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-600">
+                    Привет, {currentUser.email}
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={logout}>
+                    <User className="h-4 w-4 mr-2" />
+                    Выйти
+                  </Button>
+                </div>
+              ) : (
+                <Dialog
+                  open={isAuthModalOpen}
+                  onOpenChange={setIsAuthModalOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button>Войти / Зарегистрироваться</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Авторизация</DialogTitle>
+                    </DialogHeader>
+                    <Tabs defaultValue="login" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="login">Вход</TabsTrigger>
+                        <TabsTrigger value="register">Регистрация</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="login" className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={authForm.email}
+                            onChange={(e) =>
+                              setAuthForm({
+                                ...authForm,
+                                email: e.target.value,
+                              })
+                            }
+                            placeholder="admin@example.com"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="password">Пароль</Label>
+                          <Input
+                            id="password"
+                            type="password"
+                            value={authForm.password}
+                            onChange={(e) =>
+                              setAuthForm({
+                                ...authForm,
+                                password: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <Button onClick={handleLogin} className="w-full">
+                          Войти
+                        </Button>
+                      </TabsContent>
+                      <TabsContent value="register" className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="username">Имя пользователя</Label>
+                          <Input
+                            id="username"
+                            value={authForm.username}
+                            onChange={(e) =>
+                              setAuthForm({
+                                ...authForm,
+                                username: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="reg-email">Email</Label>
+                          <Input
+                            id="reg-email"
+                            type="email"
+                            value={authForm.email}
+                            onChange={(e) =>
+                              setAuthForm({
+                                ...authForm,
+                                email: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="reg-password">Пароль</Label>
+                          <Input
+                            id="reg-password"
+                            type="password"
+                            value={authForm.password}
+                            onChange={(e) =>
+                              setAuthForm({
+                                ...authForm,
+                                password: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        {registrationError && (
+                          <p className="text-red-500 text-sm mt-2">
+                            {registrationError}
+                          </p>
+                        )}
+                        <Button onClick={handleRegister} className="w-full">
+                          Зарегистрироваться
+                        </Button>
+                      </TabsContent>
+                    </Tabs>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
           </div>
-
-          <div className="flex items-center space-x-4">
-            {!isLoadingUser && currentUser?.role === 'admin' && (
-              <Link to="/create-product">
-                <Button className="bg-green-600 hover:bg-green-700">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Создать товар
-                </Button>
-              </Link>
-            )}
-
-            <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Фильтры{filterCount > 0 && `(${filterCount})`}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Фильтры</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Категория</Label>
-                    <Select value={tempFilters.category ? tempFilters.category.toString() : ""} onValueChange={(value) => {
-                      if (value === "all") {
-                        setTempFilters({...tempFilters, category: null});
-                      } else {
-                        setTempFilters({...tempFilters, category: Number(value)}); 
-                      }
-                    }}
-                      >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Выберите категорию" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map(category => (
-                          <SelectItem key={category.id} value={category.id.toString()}>{category.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Цена</Label>
-                    <div className="flex space-x-2">
-                      <Input
-                        placeholder="От"
-                        type="number"
-                        value={tempFilters.priceMin}
-                        onChange={(e) => setTempFilters({...tempFilters, priceMin: e.target.value})}
-                      />
-                      <Input
-                        placeholder="До"
-                        type="number"
-                        value={tempFilters.priceMax}
-                        onChange={(e) => setTempFilters({...tempFilters, priceMax: e.target.value})}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Дата создания</Label>
-                    <div className="flex space-x-2">
-                      <Input
-                        type="date"
-                        value={tempFilters.dateFrom}
-                        onChange={(e) => setTempFilters({...tempFilters, dateFrom: e.target.value})}
-                      />
-                      <Input
-                        type="date"
-                        value={tempFilters.dateTo}
-                        onChange={(e) => setTempFilters({...tempFilters, dateTo: e.target.value})}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>В наличии</Label>
-                    <RadioGroup value={tempFilters.inStock !== undefined ? String(tempFilters.inStock) : undefined}
-                    onValueChange={(value) => setTempFilters({...tempFilters, inStock: value === "true" ? true : false})}>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="true" id="yes" />
-                        <Label htmlFor="yes">Да</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="false" id="order" />
-                        <Label htmlFor="order">Под заказ</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  <div className="flex space-x-2 pt-4">
-                    <Button onClick={applyFilters} className="flex-1">
-                      Применить
-                    </Button>
-                    <Button onClick={resetFilters} variant="outline" className="flex-1">
-                      Сбросить
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
         </div>
-      </div>
+      </header>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-16">
-                  <Button variant="ghost" size="sm"
-                  onClick={() => handleSort('id')}
-                  className="font-semibold">
-                    ID
-                    {sortField === 'id' && (
-                      sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button variant="ghost" size="sm"
-                  onClick={() => handleSort('name')}
-                  className="font-semibold">
-                    Наименование
-                    {sortField === 'name' && (
-                      sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button variant="ghost" size="sm"
-                  onClick={() => handleSort('price')}
-                  className="font-semibold">
-                    Цена
-                    {sortField === 'price' && (
-                      sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button variant="ghost" size="sm"
-                  onClick={() => handleSort('category')}
-                  className="font-semibold">
-                    Категория
-                    {sortField === 'category' && (
-                      sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button variant="ghost" size="sm"
-                  onClick={() => handleSort('created_at')}
-                  className="font-semibold">
-                    Дата создания
-                    {sortField === 'created_at' && (
-                      sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button variant="ghost" size="sm"
-                  onClick={() => handleSort('in_stock')}
-                  className="font-semibold">
-                    В наличии
-                    {sortField === 'in_stock' && (
-                      sortDirection === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </Button>
-                </TableHead>
-                {currentUser?.role === 'admin' && (
-                  <TableHead className="w-16"></TableHead>
+      <main className="flex-grow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-gray-700 mb-2">
+              Продукты ({totalProductsCount})
+            </h2>
+
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+              <div className="flex-1 max-w-md">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Введите id или наименование продукта"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                {!isLoadingUser && currentUser?.role === "admin" && (
+                  <Link to="/create-product">
+                    <Button className="bg-green-600 hover:bg-green-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Создать товар
+                    </Button>
+                  </Link>
                 )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.isArray(products) && products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <Link to={`/products/${product.id}`} className="text-blue-600 hover:underline font-medium">
-                      {product.id}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.price.toFixed(2)}</TableCell>
-                  <TableCell>{product.category.name}</TableCell>
-                  <TableCell>{new Date(product.created_at).toLocaleDateString('ru-RU')}</TableCell>
-                  <TableCell>
-                    <Badge variant={product.in_stock ? 'default' : 'secondary'}>
-                      {product.in_stock ? 'Да' : 'Под заказ'}
-                    </Badge>
-                  </TableCell>
-                  {currentUser?.role === 'admin' && (
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteProduct(product.id, product.name)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+
+                <Dialog
+                  open={isFilterModalOpen}
+                  onOpenChange={setIsFilterModalOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <Filter className="h-4 w-4 mr-2" />
+                      Фильтры{filterCount > 0 && `(${filterCount})`}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Фильтры</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Категория</Label>
+                        <Select
+                          value={
+                            tempFilters.category
+                              ? tempFilters.category.toString()
+                              : ""
+                          }
+                          onValueChange={(value) => {
+                            if (value === "all") {
+                              setTempFilters({
+                                ...tempFilters,
+                                category: null,
+                              });
+                            } else {
+                              setTempFilters({
+                                ...tempFilters,
+                                category: Number(value),
+                              });
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите категорию" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((category) => (
+                              <SelectItem
+                                key={category.id}
+                                value={category.id.toString()}
+                              >
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Цена</Label>
+                        <div className="flex space-x-2">
+                          <Input
+                            placeholder="От"
+                            type="number"
+                            value={tempFilters.priceMin}
+                            onChange={(e) =>
+                              setTempFilters({
+                                ...tempFilters,
+                                priceMin: e.target.value,
+                              })
+                            }
+                          />
+                          <Input
+                            placeholder="До"
+                            type="number"
+                            value={tempFilters.priceMax}
+                            onChange={(e) =>
+                              setTempFilters({
+                                ...tempFilters,
+                                priceMax: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Дата создания</Label>
+                        <div className="flex space-x-2">
+                          <Input
+                            type="date"
+                            value={tempFilters.dateFrom}
+                            onChange={(e) =>
+                              setTempFilters({
+                                ...tempFilters,
+                                dateFrom: e.target.value,
+                              })
+                            }
+                          />
+                          <Input
+                            type="date"
+                            value={tempFilters.dateTo}
+                            onChange={(e) =>
+                              setTempFilters({
+                                ...tempFilters,
+                                dateTo: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>В наличии</Label>
+                        <RadioGroup
+                          value={
+                            tempFilters.inStock !== undefined
+                              ? String(tempFilters.inStock)
+                              : undefined
+                          }
+                          onValueChange={(value) =>
+                            setTempFilters({
+                              ...tempFilters,
+                              inStock: value === "true" ? true : false,
+                            })
+                          }
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="true" id="yes" />
+                            <Label htmlFor="yes">Да</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="false" id="order" />
+                            <Label htmlFor="order">Под заказ</Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+
+                      <div className="flex space-x-2 pt-4">
+                        <Button onClick={applyFilters} className="flex-1">
+                          Применить
+                        </Button>
+                        <Button
+                          onClick={resetFilters}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          Сбросить
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+          </div>
+        
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort("id")}
+                      className="font-semibold"
+                    >
+                      ID
+                      {sortField === "id" &&
+                        (sortDirection === "asc" ? (
+                          <ChevronUp className="ml-1 h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                        ))}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort("name")}
+                      className="font-semibold"
+                    >
+                      Наименование
+                      {sortField === "name" &&
+                        (sortDirection === "asc" ? (
+                          <ChevronUp className="ml-1 h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                        ))}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort("price")}
+                      className="font-semibold"
+                    >
+                      Цена
+                      {sortField === "price" &&
+                        (sortDirection === "asc" ? (
+                          <ChevronUp className="ml-1 h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                        ))}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort("category")}
+                      className="font-semibold"
+                    >
+                      Категория
+                      {sortField === "category" &&
+                        (sortDirection === "asc" ? (
+                          <ChevronUp className="ml-1 h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                        ))}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort("created_at")}
+                      className="font-semibold"
+                    >
+                      Дата создания
+                      {sortField === "created_at" &&
+                        (sortDirection === "asc" ? (
+                          <ChevronUp className="ml-1 h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                        ))}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort("in_stock")}
+                      className="font-semibold"
+                    >
+                      В наличии
+                      {sortField === "in_stock" &&
+                        (sortDirection === "asc" ? (
+                          <ChevronUp className="ml-1 h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                        ))}
+                    </Button>
+                  </TableHead>
+                  {currentUser?.role === "admin" && (
+                    <TableHead className="w-16"></TableHead>
                   )}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {Array.isArray(products) &&
+                  products.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>
+                        <Link
+                          to={`/products/${product.id}`}
+                          className="text-blue-600 hover:underline font-medium"
+                        >
+                          {product.id}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {product.name}
+                      </TableCell>
+                      <TableCell>{product.price.toFixed(2)}</TableCell>
+                      <TableCell>{product.category.name}</TableCell>
+                      <TableCell>
+                        {new Date(product.created_at).toLocaleDateString(
+                          "ru-RU"
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={product.in_stock ? "default" : "secondary"}
+                        >
+                          {product.in_stock ? "Да" : "Под заказ"}
+                        </Badge>
+                      </TableCell>
+                      {currentUser?.role === "admin" && (
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleDeleteProduct(product.id, product.name)
+                            }
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
         <div className="mt-6 flex items-center justify-between">
-        <div className="text-sm text-gray-700">
-          {totalProductsCount > 0 ? (
-            <>
-              {Math.min((currentPage - 1) * itemsPerPage + 1, totalProductsCount)} - {Math.min(currentPage * itemsPerPage, totalProductsCount)} из {totalProductsCount}
-            </>
-          ) : (
-            "Нет товаров"
-          )}
-        </div>
+          <div className="text-sm text-gray-700">
+            {totalProductsCount > 0 ? (
+              <>
+                {Math.min(
+                  (currentPage - 1) * itemsPerPage + 1,
+                  totalProductsCount
+                )}{" "}
+                - {Math.min(currentPage * itemsPerPage, totalProductsCount)} из{" "}
+                {totalProductsCount}
+              </>
+            ) : (
+              "Нет товаров"
+            )}
+          </div>
 
           <div className="flex items-center space-x-2">
             <Button
-              variant={currentPage === 1 ? 'outline' : 'default'}
+              variant={currentPage === 1 ? "outline" : "default"}
               size="sm"
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
@@ -671,24 +887,27 @@ return (
             </Button>
 
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i
-              if (pageNum > totalPages) return null
+              const pageNum =
+                Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+              if (pageNum > totalPages) return null;
               return (
                 <Button
                   key={pageNum}
-                  variant={currentPage === pageNum ? 'default' : 'outline'}
+                  variant={currentPage === pageNum ? "default" : "outline"}
                   size="sm"
                   onClick={() => setCurrentPage(pageNum)}
-                 >
+                >
                   {pageNum}
                 </Button>
-              )
+              );
             })}
 
             <Button
-              variant={currentPage === totalPages ? 'outline' : 'default'}
+              variant={currentPage === totalPages ? "outline" : "default"}
               size="sm"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              onClick={() =>
+                setCurrentPage(Math.min(totalPages, currentPage + 1))
+              }
               disabled={currentPage === totalPages}
             >
               <ChevronRight className="h-4 w-4" />
@@ -700,8 +919,8 @@ return (
             <Select
               value={itemsPerPage.toString()}
               onValueChange={(value) => {
-                setItemsPerPage(Number(value))
-                setCurrentPage(1)
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
               }}
             >
               <SelectTrigger className="w-[80px]">
@@ -715,11 +934,12 @@ return (
             </Select>
           </div>
         </div>
+        </div>
       </main>
 
       <footer className="bg-white shadow-sm border-t mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center text-gray-500 text-sm">
-          © 2024 QA Shop. Все права защищены.
+          © 2025 QA Automation Garage. Все права не защищены.
         </div>
       </footer>
 
