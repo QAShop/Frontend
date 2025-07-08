@@ -425,9 +425,9 @@ export function AppContent() {
                 <a href="#" className="text-gray-500 hover:text-gray-700">
                   Категории
                 </a>
-                <a href="#" className="text-gray-500 hover:text-gray-700">
-                  По шагам
-                </a>
+                <Link to="/steps" className="text-gray-500 hover:text-gray-700">
+                   По шагам
+                </Link>
                 <a href="#" className="text-gray-500 hover:text-gray-700">
                   О проекте
                 </a>
