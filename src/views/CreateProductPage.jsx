@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.j
 import { ArrowLeft } from 'lucide-react';
 import Alert from '../components/ui/alert.jsx';
 import '../components/ui/Alert.css';
+import SuccessDialog from '../components/ui/SuccessDialog';
 
 import { API_BASE_URL } from '../config';
 
@@ -18,7 +19,9 @@ function CreateProductPage() {
   const [categories, setCategories] = useState([]);
   const [alertMessage, setAlertMessage] = useState(null);
   const [alertType, setAlertType] = useState('error');
-  
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+
   // Форма создания товара
   const [productForm, setProductForm] = useState({
     name: '',
@@ -29,13 +32,23 @@ function CreateProductPage() {
     in_stock: 'Да'
   });
 
-  // Функция для показа алерта
-  const showAlert = (message, type) => {
-    setAlertMessage(message);
-    setAlertType(type);
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 5000);
+  // Модифицированная функция для показа сообщений (объединяет showAlert и SuccessDialog)
+  const showAppMessage = (message, type) => {
+    if (type === 'success') {
+      setSuccessMessage(message);
+      setIsSuccessDialogOpen(true);
+    } else {
+      setAlertMessage(message);
+      setAlertType(type);
+      setTimeout(() => {
+        setAlertMessage(null);
+      }, 5000); // Ошибки могут висеть дольше
+    }
+  };
+
+  const handleCloseSuccessDialog = () => {
+    setIsSuccessDialogOpen(false);
+    setSuccessMessage(null);
   };
 
   // Функция для скрытия алерта
@@ -71,7 +84,7 @@ function CreateProductPage() {
   // Создание товара
   const handleCreateProduct = async () => {
     if (!productForm.name || !productForm.price || !productForm.category || productForm.category === 0) {
-      showAlert('Пожалуйста, заполните все обязательные поля', 'error');
+      showAppMessage('Пожалуйста, заполните все обязательные поля', 'error');
       return;
     }
 
@@ -97,7 +110,7 @@ function CreateProductPage() {
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      showAlert('Товар успешно создан!', 'success');
+      showAppMessage('Товар успешно создан!', 'success');
       
       // Сбрасываем форму
       setProductForm({
@@ -116,7 +129,7 @@ function CreateProductPage() {
 
     } catch (error) {
       console.error('Ошибка создания товара:', error);
-      showAlert(`Ошибка создания товара: ${error.message}`, 'error');
+      showAppMessage(`Ошибка создания товара: ${error.message}`, 'error');
     }
   };
 
@@ -130,6 +143,12 @@ function CreateProductPage() {
           onClose={hideAlert}
         />
       </div>
+      <SuccessDialog
+        message={successMessage}
+        isOpen={isSuccessDialogOpen}
+        onClose={handleCloseSuccessDialog}
+        autoCloseDelay={3000} // 3 секунды
+      />
 
       {/* Хедер */}
       <header className="bg-white shadow-sm border-b">

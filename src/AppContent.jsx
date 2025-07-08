@@ -54,8 +54,10 @@ import { Link } from "react-router-dom";
 import Alert from "./components/ui/alert.jsx";
 import "./components/ui/Alert.css";
 import ConfirmDialog from "./components/ui/ConfirmDialog.jsx";
+import SuccessDialog from "./components/ui/SuccessDialog.jsx";
 import { useAuth } from "./context/AuthContext";
 import logo from './assets/AszeAv282h.png'
+
 
 
 const API_BASE_URL = "http://localhost:5000/api";
@@ -83,6 +85,8 @@ export function AppContent() {
     productId: null,
     productName: "",
   });
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
 
   // Фильтры
   const [filters, setFilters] = useState({
@@ -99,13 +103,34 @@ export function AppContent() {
     if (isFilterModalOpen) {
       setTempFilters(filters);
     }
-  }, [isFilterModalOpen]); // Функция для показа алерта
-  const showAlert = (message, type) => {
-    setAlertMessage(message);
-    setAlertType(type);
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
+  }, [isFilterModalOpen]); 
+  
+  // // Функция для показа алерта
+  // const showAlert = (message, type) => {
+  //   setAlertMessage(message);
+  //   setAlertType(type);
+  //   setTimeout(() => {
+  //     setAlertMessage(null);
+  //   }, 3000);
+  // };
+
+    // Модифицированная функция для показа сообщений (объединяет showAlert и SuccessDialog)
+  const showAppMessage = (message, type) => {
+    if (type === 'success') {
+      setSuccessMessage(message);
+      setIsSuccessDialogOpen(true);
+    } else {
+      setAlertMessage(message);
+      setAlertType(type);
+      setTimeout(() => {
+        setAlertMessage(null);
+      }, 5000); // Ошибки могут висеть дольше
+    }
+  };
+
+  const handleCloseSuccessDialog = () => {
+    setIsSuccessDialogOpen(false);
+    setSuccessMessage(null);
   };
 
   // Функция для скрытия алерта
@@ -298,8 +323,9 @@ export function AppContent() {
     if (success) {
       setIsAuthModalOpen(false);
       setAuthForm({ email: "", password: "", username: "" });
+      showAppMessage("Вход выполнен успешно!", "success");
     } else {
-      showAlert(`Ошибка входа: ${error}`, "error");
+      showAppMessage(`Ошибка входа: ${error}`, "error");
     }
   };
 
@@ -315,7 +341,7 @@ export function AppContent() {
       setIsAuthModalOpen(false);
       setAuthForm({ email: "", password: "", username: "" });
       setRegistrationError(null);
-      showAlert("Регистрация успешна! Теперь вы можете войти.", "success");
+      showAppMessage("Регистрация успешна! Теперь вы можете войти.", "success");
     } else {
       if (error.includes("409")) {
         setRegistrationError(
@@ -323,7 +349,7 @@ export function AppContent() {
             "Пользователь с таким email или именем пользователя уже существует."
         );
       } else {
-        showAlert(`Произошла непредвиденная ошибка: ${error}`, "error");
+        showAppMessage(`Произошла непредвиденная ошибка: ${error}`, "error");
       }
     }
   };
@@ -357,11 +383,11 @@ export function AppContent() {
         );
       }
 
-      showAlert("Товар успешно удален!", "success");
+      showAppMessage("Товар успешно удален!", "success");
       fetchProducts(); // Обновить список продуктов
     } catch (error) {
       console.error("Ошибка удаления товара:", error);
-      showAlert(`Ошибка удаления товара: ${error.message}`, "error");
+      showAppMessage(`Ошибка удаления товара: ${error.message}`, "error");
     }
   };
 
@@ -379,6 +405,12 @@ export function AppContent() {
       <div className="global-alert-container">
         <Alert message={alertMessage} type={alertType} onClose={hideAlert} />
       </div>
+      <SuccessDialog
+        message={successMessage}
+        isOpen={isSuccessDialogOpen}
+        onClose={handleCloseSuccessDialog}
+        autoCloseDelay={3000} // 3 секунды
+      />
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">

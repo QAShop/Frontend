@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom'; // Добавил useNavigate для редиректа
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button'; // Добавил Button
-import { ChevronLeft, Edit, Trash2 } from 'lucide-react'; // Добавил иконки для редактирования и удаления
-import { useAuth } from './context/AuthContext'; // Добавил контекст авторизации
-import ConfirmDialog from '@/components/ui/ConfirmDialog.jsx'; // Добавил кастомный диалог подтверждения
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, Edit, Trash2 } from 'lucide-react';
+import { useAuth } from './context/AuthContext';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.jsx';
+import SuccessDialog from '@/components/ui/SuccessDialog.jsx'; // Импорт SuccessDialog
+import Alert from '@/components/ui/alert.jsx'; // Импорт Alert для ошибок
+import '@/components/ui/Alert.css'; // Импорт стилей Alert
 import placeholderImage from '@/assets/197dfaf0172a5.jpg'; 
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
 function ProductPage( ) {
   const { productId } = useParams();
-  const navigate = useNavigate(); // Для редиректа
-  const { currentUser } = useAuth(); // Получаем текущего пользователя
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,6 +24,35 @@ function ProductPage( ) {
     isOpen: false,
     productName: ''
   });
+
+  // Новые состояния для SuccessDialog и Alert
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState(null);
+  const [alertType, setAlertType] = useState('error');
+
+  // Модифицированная функция для показа сообщений (объединяет Alert и SuccessDialog)
+  const showAppMessage = (message, type) => {
+    if (type === 'success') {
+      setSuccessMessage(message);
+      setIsSuccessDialogOpen(true);
+    } else {
+      setAlertMessage(message);
+      setAlertType(type);
+      setTimeout(() => {
+        setAlertMessage(null);
+      }, 5000); // Ошибки могут висеть дольше
+    }
+  };
+
+  const handleCloseSuccessDialog = () => {
+    setIsSuccessDialogOpen(false);
+    setSuccessMessage(null);
+  };
+
+  const hideAlert = () => {
+    setAlertMessage(null);
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -31,8 +63,6 @@ function ProductPage( ) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        // Предполагаем, что одиночный товар приходит в поле 'product'
-        // Если ваш API возвращает товар напрямую, используйте setProduct(data);
         setProduct(data.product);
       } catch (err) {
         setError(err.message);
@@ -44,7 +74,6 @@ function ProductPage( ) {
     fetchProduct();
   }, [productId]);
 
-  // Функция удаления товара
   const handleDeleteProduct = () => {
     setDeleteConfirmDialog({
       isOpen: true,
@@ -52,7 +81,6 @@ function ProductPage( ) {
     });
   };
 
-  // Подтверждение удаления товара
   const confirmDeleteProduct = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
@@ -67,15 +95,17 @@ function ProductPage( ) {
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      alert('Товар успешно удален!');
-      navigate('/'); // Редирект на главную страницу
+      showAppMessage('Товар успешно удален!', 'success'); // Используем showAppMessage
+      setTimeout(() => {
+        navigate('/'); // Редирект на главную страницу после показа сообщения
+      }, 2000); // Задержка перед редиректом
+
     } catch (error) {
       console.error('Ошибка удаления товара:', error);
-      alert(`Ошибка удаления товара: ${error.message}`);
+      showAppMessage(`Ошибка удаления товара: ${error.message}`, 'error'); // Используем showAppMessage
     }
   };
 
-  // Закрытие диалога подтверждения удаления
   const closeDeleteConfirmDialog = () => {
     setDeleteConfirmDialog({
       isOpen: false,
@@ -83,7 +113,6 @@ function ProductPage( ) {
     });
   };
 
-  // Функция перехода к редактированию товара
   const handleEditProduct = () => {
     navigate(`/edit-product/${productId}`);
   };
@@ -114,6 +143,23 @@ function ProductPage( ) {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      {/* Контейнер для глобального алерта */}
+      <div className="global-alert-container">
+        <Alert
+          message={alertMessage}
+          type={alertType}
+          onClose={hideAlert}
+        />
+      </div>
+
+      {/* Success Dialog (для успешных сообщений) */}
+      <SuccessDialog
+        message={successMessage}
+        isOpen={isSuccessDialogOpen}
+        onClose={handleCloseSuccessDialog}
+        autoCloseDelay={3000} // 3 секунды
+      />
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <Link to="/">
@@ -161,7 +207,7 @@ function ProductPage( ) {
                   <p className="text-gray-700 text-lg">
                     <strong>Категория:</strong>{' '}
                     <Badge variant="outline" className="text-base px-3 py-1">
-                      {product.category.name || product.category} {/* Учитываем, что category может быть объектом или строкой */}
+                      {product.category.name || product.category}
                     </Badge>
                   </p>
                   <p className="text-gray-700 text-lg">
