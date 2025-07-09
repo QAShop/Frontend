@@ -474,7 +474,7 @@ export function AppContent() {
                                 email: e.target.value,
                               })
                             }
-                            placeholder="admin@example.com"
+                            placeholder="user@example.com"
                           />
                         </div>
                         <div className="space-y-2">

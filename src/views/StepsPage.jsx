@@ -1,5 +1,8 @@
-
 import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
+import { ChevronUp, ChevronDown } from "lucide-react";
+import step1Instructions from '/content/step1';
+import step2Instructions from '/content/step2'; // Импорт контента для первого шага
 
 const AccordionItem = ({ title, content }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,77 +12,61 @@ const AccordionItem = ({ title, content }) => {
   };
 
   return (
-    <div style={{ border: '1px solid #ccc', marginBottom: '10px', borderRadius: '5px' }}>
-      <div
-        style={{
-          padding: '10px',
-          backgroundColor: '#f0f0f0',
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
+    <Card className="mb-4">
+      <CardHeader
+        className="flex flex-row items-center justify-between p-4 cursor-pointer bg-gray-100 hover:bg-gray-200 rounded-t-lg"
         onClick={toggleAccordion}
       >
-        <h3>{title}</h3>
-        <span>{isOpen ? '▲' : '▼'}</span>
-      </div>
+        <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+        <span>
+          {isOpen ? <ChevronUp className="h-5 w-5 text-gray-600" /> : <ChevronDown className="h-5 w-5 text-gray-600" />}
+        </span>
+      </CardHeader>
       {isOpen && (
-        <div style={{ padding: '10px', borderTop: '1px solid #eee' }}>
+        <CardContent className="p-4 border-t border-gray-200">
           {content}
-        </div>
+        </CardContent>
       )}
-    </div>
+    </Card>
   );
 };
 
 const StepsPage = () => {
   const accordionData = [
     {
-      title: 'Шпаргалка №2: Создание `venv`',
-      content: (
-        <>
-          <p>Чтобы не устраивать свалку из библиотек, создаем для нашего проекта изолированное пространство. Это делается всего двумя командами.</p>
-          <ol>
-            <li>
-              <strong>Создаем папку для проекта.</strong> Заходим в нее через командную строку. Например:
-              <ul>
-                <li><code>mkdir my-test-project</code></li>
-                <li><code>cd my-test-project</code></li>
-              </ul>
-            </li>
-            <li>
-              <strong>Создаем виртуальное окружение.</strong> Выполняем команду:
-              <ul>
-                <li><code>python -m venv venv</code></li>
-                <li><em>Что это значит:</em> <code>python, запусти модуль venv и создай окружение в папке с именем venv</code>.</li>
-              </ul>
-            </li>
-            <li>
-              <strong>Активируем его.</strong> Это нужно делать каждый раз, когда вы начинаете работать над проектом.
-              <ul>
-                <li><strong>Для Windows:</strong> <code>venv\\Scripts\\activate</code></li>
-                <li><strong>Для MacOS/Linux:</strong> <code>source venv/bin/activate</code></li>
-              </ul>
-            </li>
-          </ol>
-          <p>После активации в начале строки терминала появится <code>(venv)</code>. Это значит, что вы в "чистой комнате", и все библиотеки, которые вы установите, попадут только сюда.</p>
-        </>
-      ),
+      title: 'Шаг 1: Установка Python',
+      content: step1Instructions,  // Использование импортированных инструкций для шага 1
     },
-    // Add more accordion items here if needed
+    {
+      title: 'Шаг 2: Новые инструкции', // Шаблон для второй инструкции
+      content: step2Instructions,
+    },
+    {
+      title: 'Шаг 3: ', // Шаблон для третьей инструкции
+      content: <p>Контент для шага 3...</p>,
+    },
+    {
+      title: 'Шаг 4: ', // Шаблон для четвертой инструкции
+      content: <p>Контент для шага 4...</p>,
+    },
+    {
+      title: 'Шаг 5: ', // Шаблон для пятой инструкции
+      content: <p>Контент для шага 5...</p>,
+    },
   ];
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>По шагам</h1>
-      {accordionData.map((item, index) => (
-        <AccordionItem key={index} title={item.title} content={item.content} />
-      ))}
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <main className="flex-grow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <h1 className="text-3xl font-bold text-gray-700 mb-6">По шагам</h1>
+          {accordionData.map((item, index) => (
+            <AccordionItem key={index} title={item.title} content={item.content} />
+          ))}
+        </div>
+      </main>
     </div>
   );
 };
 
 export default StepsPage;
-
-
