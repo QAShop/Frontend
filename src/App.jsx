@@ -5,6 +5,7 @@ import ProductPage from './ProductPage';
 import CreateProductPage from './views/CreateProductPage';
 import EditProductPage from './views/EditProductPage';
 import StepsPage from './views/StepsPage'; 
+import RoadmapPage from './views/RoadmapPage'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/create-product" element={<CreateProductPage />} />
         <Route path="/edit-product/:productId" element={<EditProductPage />} />
         <Route path="/steps" element={<StepsPage />} /> 
+        <Route path="/roadmap" element={<RoadmapPage />} /> 
       </Routes>
     </Router>
   );

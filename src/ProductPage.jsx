@@ -174,18 +174,20 @@ function ProductPage( ) {
           <CardContent className="p-6 md:p-8">
             <div className="flex flex-col md:flex-row gap-8">
               {/* Секция изображения */}
-              <div className="md:w-1/2 flex justify-center items-center bg-gray-100 rounded-md p-4">
+              <div className="md:w-1/2 flex justify-center items-start bg-gray-100 rounded-md p-4">
                 {product.image_url ? (
                   <img
                     src={product.image_url}
                     alt={product.name}
                     className="max-w-full h-auto max-h-96 object-contain rounded-md"
+                    style={{ alignSelf: 'flex-start' }} 
                   />
                 ) : (
                   <img
                     src={placeholderImage}
                     alt="Изображение отсутствует"
                     className="max-w-full h-auto max-h-96 object-contain rounded-md"
+                    style={{ alignSelf: 'flex-start' }} 
                   />
                 )}
               </div>

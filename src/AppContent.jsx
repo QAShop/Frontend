@@ -56,6 +56,8 @@ import "./components/ui/Alert.css";
 import ConfirmDialog from "./components/ui/ConfirmDialog.jsx";
 import SuccessDialog from "./components/ui/SuccessDialog.jsx";
 import { useAuth } from "./context/AuthContext";
+import ValidationError from "./components/ui/ValidationError.jsx";
+import { validateLoginForm, validateRegistrationForm } from "./utils/validation.js";
 import logo from './assets/AszeAv282h.png'
 
 
@@ -87,6 +89,12 @@ export function AppContent() {
   });
   const [successMessage, setSuccessMessage] = useState(null);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+
+  // Состояния для валидации форм
+  const [validationErrors, setValidationErrors] = useState({
+    login: { email: [], password: [] },
+    register: { username: [], email: [], password: [] }
+  });
 
   // Фильтры
   const [filters, setFilters] = useState({
@@ -319,10 +327,31 @@ export function AppContent() {
 
   // Авторизация
   const handleLogin = async () => {
+    // Сброс предыдущих ошибок валидации
+    setValidationErrors(prev => ({
+      ...prev,
+      login: { email: [], password: [] }
+    }));
+
+    // Валидация формы входа
+    const validation = validateLoginForm(authForm);
+    
+    if (!validation.isValid) {
+      setValidationErrors(prev => ({
+        ...prev,
+        login: validation.errors
+      }));
+      return;
+    }
+
     const { success, error } = await login(authForm.email, authForm.password);
     if (success) {
       setIsAuthModalOpen(false);
       setAuthForm({ email: "", password: "", username: "" });
+      setValidationErrors({
+        login: { email: [], password: [] },
+        register: { username: [], email: [], password: [] }
+      });
       showAppMessage("Вход выполнен успешно!", "success");
     } else {
       showAppMessage(`Ошибка входа: ${error}`, "error");
@@ -331,7 +360,24 @@ export function AppContent() {
 
   // Регистрация
   const handleRegister = async () => {
+    // Сброс предыдущих ошибок
     setRegistrationError(null);
+    setValidationErrors(prev => ({
+      ...prev,
+      register: { username: [], email: [], password: [] }
+    }));
+
+    // Валидация формы регистрации
+    const validation = validateRegistrationForm(authForm);
+    
+    if (!validation.isValid) {
+      setValidationErrors(prev => ({
+        ...prev,
+        register: validation.errors
+      }));
+      return;
+    }
+
     const { success, error } = await register(
       authForm.username,
       authForm.email,
@@ -341,6 +387,10 @@ export function AppContent() {
       setIsAuthModalOpen(false);
       setAuthForm({ email: "", password: "", username: "" });
       setRegistrationError(null);
+      setValidationErrors({
+        login: { email: [], password: [] },
+        register: { username: [], email: [], password: [] }
+      });
       showAppMessage("Регистрация успешна! Теперь вы можете войти.", "success");
     } else {
       if (error.includes("409")) {
@@ -422,9 +472,9 @@ export function AppContent() {
                 <Link to="/" className="text-blue-600 font-medium">
                   Продукты
                 </Link>
-                <a href="#" className="text-gray-500 hover:text-gray-700">
-                  Категории
-                </a>
+                <Link to="/roadmap" className="text-gray-500 hover:text-gray-700">
+                   Роадмап
+                </Link>
                 <Link to="/steps" className="text-gray-500 hover:text-gray-700">
                    По шагам
                 </Link>
@@ -475,7 +525,9 @@ export function AppContent() {
                               })
                             }
                             placeholder="user@example.com"
+                            className={validationErrors.login.email.length > 0 ? "border-red-500" : ""}
                           />
+                          <ValidationError errors={validationErrors.login.email} />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="password">Пароль</Label>
@@ -489,7 +541,9 @@ export function AppContent() {
                                 password: e.target.value,
                               })
                             }
+                            className={validationErrors.login.password.length > 0 ? "border-red-500" : ""}
                           />
+                          <ValidationError errors={validationErrors.login.password} />
                         </div>
                         <Button onClick={handleLogin} className="w-full">
                           Войти
@@ -507,7 +561,10 @@ export function AppContent() {
                                 username: e.target.value,
                               })
                             }
+                            placeholder="Введите имя пользователя"
+                            className={validationErrors.register.username.length > 0 ? "border-red-500" : ""}
                           />
+                          <ValidationError errors={validationErrors.register.username} />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="reg-email">Email</Label>
@@ -521,7 +578,10 @@ export function AppContent() {
                                 email: e.target.value,
                               })
                             }
+                            placeholder="user@example.com"
+                            className={validationErrors.register.email.length > 0 ? "border-red-500" : ""}
                           />
+                          <ValidationError errors={validationErrors.register.email} />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="reg-password">Пароль</Label>
@@ -535,7 +595,10 @@ export function AppContent() {
                                 password: e.target.value,
                               })
                             }
+                            placeholder="Введите пароль"
+                            className={validationErrors.register.password.length > 0 ? "border-red-500" : ""}
                           />
+                          <ValidationError errors={validationErrors.register.password} />
                         </div>
                         {registrationError && (
                           <p className="text-red-500 text-sm mt-2">
