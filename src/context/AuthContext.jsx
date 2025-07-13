@@ -72,7 +72,11 @@ export const AuthProvider = ({ children }) => {
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        if (response.status === 409) {
+          throw new Error("Пользователь с таким email или именем пользователя уже существует.");
+        } else {
+          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
       }
       // Если регистрация успешна, можно сразу залогинить пользователя или просто сообщить об успехе
       // В данном случае, просто сообщаем об успехе, логин будет отдельным шагом

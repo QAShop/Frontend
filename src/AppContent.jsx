@@ -393,11 +393,8 @@ export function AppContent() {
       });
       showAppMessage("Регистрация успешна! Теперь вы можете войти.", "success");
     } else {
-      if (error.includes("409")) {
-        setRegistrationError(
-          error.replace("HTTP error! status: 409: ", "") ||
-            "Пользователь с таким email или именем пользователя уже существует."
-        );
+      if (error === "Пользователь с таким email или именем пользователя уже существует.") {
+        showAppMessage(error, "error");
       } else {
         showAppMessage(`Произошла непредвиденная ошибка: ${error}`, "error");
       }
@@ -472,9 +469,9 @@ export function AppContent() {
                 <Link to="/" className="text-blue-600 font-medium">
                   Продукты
                 </Link>
-                <Link to="/roadmap" className="text-gray-500 hover:text-gray-700">
-                   Роадмап
-                </Link>
+                <a href="#" className="text-gray-500 hover:text-gray-700">
+                  Категории
+                </a>
                 <Link to="/steps" className="text-gray-500 hover:text-gray-700">
                    По шагам
                 </Link>
