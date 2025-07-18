@@ -6,11 +6,13 @@ import CreateProductPage from './views/CreateProductPage';
 import EditProductPage from './views/EditProductPage';
 import StepsPage from './views/StepsPage'; 
 import RoadmapPage from './views/RoadmapPage'
+import Header from './views/Header';
 
 
 function App() {
   return (
     <Router>
+      <Header />
       <Routes>
         <Route path="/" element={<AppContent />} />
         <Route path="/products/:productId" element={<ProductPage />} />

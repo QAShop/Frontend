@@ -56,15 +56,11 @@ const StepsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <main className="flex-grow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold text-gray-700 mb-6">По шагам</h1>
-          {accordionData.map((item, index) => (
-            <AccordionItem key={index} title={item.title} content={item.content} />
-          ))}
-        </div>
-      </main>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 className="text-3xl font-bold text-gray-700 mb-6">По шагам</h1>
+      {accordionData.map((item, index) => (
+        <AccordionItem key={index} title={item.title} content={item.content} />
+      ))}
     </div>
   );
 };

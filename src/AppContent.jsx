@@ -1,21 +1,9 @@
 import { useState, useEffect } from "react";
+import { Link } from 'react-router-dom'
+import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog.jsx";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs.jsx";
-import { Label } from "@/components/ui/label.jsx";
 import {
   Select,
   SelectContent,
@@ -41,7 +29,6 @@ import {
 import {
   Search,
   Filter,
-  User,
   Plus,
   Trash2,
   ChevronUp,
@@ -49,23 +36,26 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import "./App.css";
-import { Link } from "react-router-dom";
 import Alert from "./components/ui/alert.jsx";
 import "./components/ui/Alert.css";
 import ConfirmDialog from "./components/ui/ConfirmDialog.jsx";
 import SuccessDialog from "./components/ui/SuccessDialog.jsx";
 import { useAuth } from "./context/AuthContext";
-import ValidationError from "./components/ui/ValidationError.jsx";
-import { validateLoginForm, validateRegistrationForm } from "./utils/validation.js";
-import logo from './assets/AszeAv282h.png'
 
 
 
 const API_BASE_URL = "http://localhost:5000/api";
 
 export function AppContent() {
-  const { currentUser, isLoadingUser, logout, login, register } = useAuth(); // Используем хук useAuth
+  const { currentUser, isLoadingUser } = useAuth(); // Используем хук useAuth
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,7 +63,6 @@ export function AppContent() {
   const [sortDirection, setSortDirection] = useState("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [filterCount, setFilterCount] = useState(0);
   const [totalProductsCount, setTotalProductsCount] = useState(0);
@@ -81,7 +70,6 @@ export function AppContent() {
   const [categories, setCategories] = useState([]);
   const [alertMessage, setAlertMessage] = useState(null);
   const [alertType, setAlertType] = useState("error");
-  const [registrationError, setRegistrationError] = useState(null);
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({
     isOpen: false,
     productId: null,
@@ -89,12 +77,6 @@ export function AppContent() {
   });
   const [successMessage, setSuccessMessage] = useState(null);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
-
-  // Состояния для валидации форм
-  const [validationErrors, setValidationErrors] = useState({
-    login: { email: [], password: [] },
-    register: { username: [], email: [], password: [] }
-  });
 
   // Фильтры
   const [filters, setFilters] = useState({
@@ -145,13 +127,6 @@ export function AppContent() {
   const hideAlert = () => {
     setAlertMessage(null);
   };
-
-  // Форма авторизации
-  const [authForm, setAuthForm] = useState({
-    email: "",
-    password: "",
-    username: "",
-  });
 
   // Функция для загрузки категорий с сервера
   const fetchCategories = async () => {
@@ -325,82 +300,6 @@ export function AppContent() {
     ? products.slice(startIndex, endIndex)
     : [];
 
-  // Авторизация
-  const handleLogin = async () => {
-    // Сброс предыдущих ошибок валидации
-    setValidationErrors(prev => ({
-      ...prev,
-      login: { email: [], password: [] }
-    }));
-
-    // Валидация формы входа
-    const validation = validateLoginForm(authForm);
-    
-    if (!validation.isValid) {
-      setValidationErrors(prev => ({
-        ...prev,
-        login: validation.errors
-      }));
-      return;
-    }
-
-    const { success, error } = await login(authForm.email, authForm.password);
-    if (success) {
-      setIsAuthModalOpen(false);
-      setAuthForm({ email: "", password: "", username: "" });
-      setValidationErrors({
-        login: { email: [], password: [] },
-        register: { username: [], email: [], password: [] }
-      });
-      showAppMessage("Вход выполнен успешно!", "success");
-    } else {
-      showAppMessage(`Ошибка входа: ${error}`, "error");
-    }
-  };
-
-  // Регистрация
-  const handleRegister = async () => {
-    // Сброс предыдущих ошибок
-    setRegistrationError(null);
-    setValidationErrors(prev => ({
-      ...prev,
-      register: { username: [], email: [], password: [] }
-    }));
-
-    // Валидация формы регистрации
-    const validation = validateRegistrationForm(authForm);
-    
-    if (!validation.isValid) {
-      setValidationErrors(prev => ({
-        ...prev,
-        register: validation.errors
-      }));
-      return;
-    }
-
-    const { success, error } = await register(
-      authForm.username,
-      authForm.email,
-      authForm.password
-    );
-    if (success) {
-      setIsAuthModalOpen(false);
-      setAuthForm({ email: "", password: "", username: "" });
-      setRegistrationError(null);
-      setValidationErrors({
-        login: { email: [], password: [] },
-        register: { username: [], email: [], password: [] }
-      });
-      showAppMessage("Регистрация успешна! Теперь вы можете войти.", "success");
-    } else {
-      if (error === "Пользователь с таким email или именем пользователя уже существует.") {
-        showAppMessage(error, "error");
-      } else {
-        showAppMessage(`Произошла непредвиденная ошибка: ${error}`, "error");
-      }
-    }
-  };
-
   // Удаление товара (только для админа)
   const handleDeleteProduct = (productId, productName) => {
     setDeleteConfirmDialog({
@@ -458,164 +357,7 @@ export function AppContent() {
         onClose={handleCloseSuccessDialog}
         autoCloseDelay={3000} // 3 секунды
       />
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <Link to="/">
-                <img src={logo} alt="QA Automation Garage Logo" className="h-18" />
-              </Link>
-              <nav className="hidden md:flex space-x-6 ml-6">
-                <Link to="/" className="text-blue-600 font-medium">
-                  Продукты
-                </Link>
-                <a href="#" className="text-gray-500 hover:text-gray-700">
-                  Категории
-                </a>
-                <Link to="/steps" className="text-gray-500 hover:text-gray-700">
-                   По шагам
-                </Link>
-                <a href="#" className="text-gray-500 hover:text-gray-700">
-                  О проекте
-                </a>
-              </nav>
-            </div>
-            <div>
-              {currentUser ? (
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-600">
-                    Привет, {currentUser.email}
-                  </span>
-                  <Button variant="ghost" size="sm" onClick={logout}>
-                    <User className="h-4 w-4 mr-2" />
-                    Выйти
-                  </Button>
-                </div>
-              ) : (
-                <Dialog
-                  open={isAuthModalOpen}
-                  onOpenChange={setIsAuthModalOpen}
-                >
-                  <DialogTrigger asChild>
-                    <Button>Войти / Зарегистрироваться</Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Авторизация</DialogTitle>
-                    </DialogHeader>
-                    <Tabs defaultValue="login" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="login">Вход</TabsTrigger>
-                        <TabsTrigger value="register">Регистрация</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="login" className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={authForm.email}
-                            onChange={(e) =>
-                              setAuthForm({
-                                ...authForm,
-                                email: e.target.value,
-                              })
-                            }
-                            placeholder="user@example.com"
-                            className={validationErrors.login.email.length > 0 ? "border-red-500" : ""}
-                          />
-                          <ValidationError errors={validationErrors.login.email} />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="password">Пароль</Label>
-                          <Input
-                            id="password"
-                            type="password"
-                            value={authForm.password}
-                            onChange={(e) =>
-                              setAuthForm({
-                                ...authForm,
-                                password: e.target.value,
-                              })
-                            }
-                            className={validationErrors.login.password.length > 0 ? "border-red-500" : ""}
-                          />
-                          <ValidationError errors={validationErrors.login.password} />
-                        </div>
-                        <Button onClick={handleLogin} className="w-full">
-                          Войти
-                        </Button>
-                      </TabsContent>
-                      <TabsContent value="register" className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="username">Имя пользователя</Label>
-                          <Input
-                            id="username"
-                            value={authForm.username}
-                            onChange={(e) =>
-                              setAuthForm({
-                                ...authForm,
-                                username: e.target.value,
-                              })
-                            }
-                            placeholder="Введите имя пользователя"
-                            className={validationErrors.register.username.length > 0 ? "border-red-500" : ""}
-                          />
-                          <ValidationError errors={validationErrors.register.username} />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="reg-email">Email</Label>
-                          <Input
-                            id="reg-email"
-                            type="email"
-                            value={authForm.email}
-                            onChange={(e) =>
-                              setAuthForm({
-                                ...authForm,
-                                email: e.target.value,
-                              })
-                            }
-                            placeholder="user@example.com"
-                            className={validationErrors.register.email.length > 0 ? "border-red-500" : ""}
-                          />
-                          <ValidationError errors={validationErrors.register.email} />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="reg-password">Пароль</Label>
-                          <Input
-                            id="reg-password"
-                            type="password"
-                            value={authForm.password}
-                            onChange={(e) =>
-                              setAuthForm({
-                                ...authForm,
-                                password: e.target.value,
-                              })
-                            }
-                            placeholder="Введите пароль"
-                            className={validationErrors.register.password.length > 0 ? "border-red-500" : ""}
-                          />
-                          <ValidationError errors={validationErrors.register.password} />
-                        </div>
-                        {registrationError && (
-                          <p className="text-red-500 text-sm mt-2">
-                            {registrationError}
-                          </p>
-                        )}
-                        <Button onClick={handleRegister} className="w-full">
-                          Зарегистрироваться
-                        </Button>
-                      </TabsContent>
-                    </Tabs>
-                  </DialogContent>
-                </Dialog>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-grow">
+      <main className="flex-1">{/* Основной контент */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-700 mb-2">
