@@ -26,7 +26,7 @@ function CreateProductPage() {
   const [productForm, setProductForm] = useState({
     name: '',
     price: '',
-    category: 0, // Будет хранить ID категории как число
+    category: '', // Будет хранить ID категории как число
     description: '',
     image_url: '',
     in_stock: 'Да'
