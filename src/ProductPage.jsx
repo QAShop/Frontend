@@ -10,7 +10,7 @@ import SuccessDialog from '@/components/ui/SuccessDialog.jsx'; // Импорт S
 import Alert from '@/components/ui/alert.jsx'; // Импорт Alert для ошибок
 import '@/components/ui/Alert.css'; // Импорт стилей Alert
 import placeholderImage from '@/assets/197dfaf0172a5.jpg'; 
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from './config';
 
 function ProductPage( ) {
   const { productId } = useParams();
