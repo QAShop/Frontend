@@ -49,10 +49,7 @@ import "./components/ui/Alert.css";
 import ConfirmDialog from "./components/ui/ConfirmDialog.jsx";
 import SuccessDialog from "./components/ui/SuccessDialog.jsx";
 import { useAuth } from "./context/AuthContext";
-
-
-
-const API_BASE_URL = "https://backend-ocjc.onrender.com/api";
+import { API_BASE_URL } from '../config';
 
 export function AppContent() {
   const { currentUser, isLoadingUser } = useAuth(); // Используем хук useAuth
