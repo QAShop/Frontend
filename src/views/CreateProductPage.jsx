@@ -11,7 +11,7 @@ import Alert from '../components/ui/alert.jsx';
 import '../components/ui/Alert.css';
 import SuccessDialog from '../components/ui/SuccessDialog';
 
-import { API_BASE_URL } from './config';
+import { API_BASE_URL } from '../config';
 
 function CreateProductPage() {
   const navigate = useNavigate();
