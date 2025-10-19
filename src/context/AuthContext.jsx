@@ -6,7 +6,7 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('jwt_token'));
-  const API_BASE_URL = 'http://localhost:5000/api'; // Перенесите сюда или импортируйте
+  const API_BASE_URL = 'https://backend-ocjc.onrender.com/api'; // Перенесите сюда или импортируйте
 
   // Функция для загрузки информации о пользователе
   const fetchUser = async (jwtToken) => {
