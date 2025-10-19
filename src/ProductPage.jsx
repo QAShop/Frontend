@@ -11,7 +11,7 @@ import Alert from '@/components/ui/alert.jsx'; // Импорт Alert для ош
 import '@/components/ui/Alert.css'; // Импорт стилей Alert
 import placeholderImage from '@/assets/197dfaf0172a5.jpg'; 
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://backend-ocjc.onrender.com/api';
 
 function ProductPage( ) {
   const { productId } = useParams();
